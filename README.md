@@ -29,7 +29,7 @@ Um jogo de labirinto desafiador onde você precisa coletar tesouros enquanto fog
 - 🗺️ Labirintos gerados aleatoriamente
 - 🔄 Dificuldade progressiva
 - ⚡ Movimento acelerado ao manter botão/tecla pressionado
-- 💖 5 vidas em mobile, 3 vidas em desktop
+- 💖 5 vidas!
 - 👾 Novo inimigo a cada 3 níveis
 - 📱 Suporte completo para desktop e mobile
 
@@ -46,6 +46,7 @@ Um jogo de labirinto desafiador onde você precisa coletar tesouros enquanto fog
 - Em níveis mais altos, preste atenção em todos os inimigos
 - Explore áreas seguras primeiro
 - Use a velocidade extra com sabedoria para fugir dos inimigos
+- Engane os inimigos indo e voltando
 
 ## 🎯 Progressão
 
