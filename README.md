@@ -1,13 +1,14 @@
 # 🎮 Labirinto dos Tesouros
 
-Um jogo de labirinto desafiador onde você precisa coletar tesouros enquanto foge de inimigos! Explore labirintos gerados proceduralmente, colete tesouros e tente sobreviver o máximo possível.
+Um jogo de labirinto desafiador onde você precisa coletar tesouros enquanto foge de inimigos! Explore labirintos gerados proceduralmente, colete tesouros, encontre munição e elimine inimigos! Tente sobreviver o máximo possível.
 
-🎯 **Jogue agora**: [https://labirinto.tiiny.site/](https://labirinto.tiiny.site/)
+🎯 **Jogue agora (abre em nova aba)**: [https://labirinto.tiiny.site/](https://labirinto.tiiny.site/)
 
 ## 🎯 Objetivo
 
 - Colete todos os tesouros dourados (✨) em cada nível
-- Evite os inimigos vermelhos (🔴)
+- Evite ou elimine os inimigos vermelhos (🔴)
+- Colete munição branca (⚪) para atirar nos inimigos
 - Sobreviva o máximo possível e faça a maior pontuação!
 
 ## 🎮 Controles
@@ -15,11 +16,13 @@ Um jogo de labirinto desafiador onde você precisa coletar tesouros enquanto fog
 ### Desktop
 - Use as setas direcionais (↑↓←→) para mover
 - Mantenha pressionada uma tecla para mover mais rápido
+- Pressione ESPAÇO para atirar
 - Pressione Enter para reiniciar após Game Over
 
 ### Mobile
 - Use os botões direcionais na tela
 - Mantenha pressionado um botão para mover mais rápido
+- Use o botão de tiro (🎯) para atirar
 - Toque no botão "Jogar Novamente" após Game Over
 
 ## 🌟 Características
@@ -29,7 +32,9 @@ Um jogo de labirinto desafiador onde você precisa coletar tesouros enquanto fog
 - 🔄 Dificuldade progressiva
 - ⚡ Movimento acelerado ao manter botão/tecla pressionado
 - 💖 5 vidas em mobile, 3 vidas em desktop
-- 👾 Novo inimigo a cada 3 níveis
+- 👾 Novo inimigo a cada 5 níveis
+- 🔫 Sistema de tiro com munição coletável
+- 🎯 Inimigos podem ser eliminados com tiros
 - 📱 Suporte completo para desktop e mobile
 
 ## 🏆 Sistema de Pontuação
@@ -40,17 +45,19 @@ Um jogo de labirinto desafiador onde você precisa coletar tesouros enquanto fog
 ## 💡 Dicas
 
 - Use as paredes do labirinto para se proteger dos inimigos
-- Planeje sua rota antes de se mover
-- Aproveite a velocidade extra ao manter pressionado
+- Economize munição para momentos críticos
+- Use os tiros estrategicamente para abrir caminho
+- Colete munição sempre que possível
+- Os inimigos eliminados reaparecem em posições aleatórias
 - Em níveis mais altos, preste atenção em todos os inimigos
 - Explore áreas seguras primeiro
-- Use a velocidade extra com sabedoria para fugir dos inimigos
 
 ## 🎯 Progressão
 
 1. Cada nível tem mais tesouros para coletar
-2. A cada 3 níveis, um novo inimigo é adicionado
-3. A pontuação aumenta proporcionalmente ao nível
+2. A cada 5 níveis, um novo inimigo é adicionado
+3. Inimigos usam inteligência artificial para encontrar o melhor caminho até você
+4. A pontuação aumenta proporcionalmente ao nível
 
 ## 🔧 Suporte
 
@@ -63,6 +70,8 @@ O jogo funciona melhor em:
 - 🟢 Jogador verde pulsante
 - 🔴 Inimigos vermelhos com animação
 - ✨ Tesouros dourados brilhantes
+- ⚪ Munição coletável branca
+- 💥 Efeitos de explosão ao eliminar inimigos
 - 🌑 Tema escuro elegante
 - 💖 Sistema de vidas com corações
 
@@ -71,14 +80,16 @@ O jogo funciona melhor em:
 - Otimizado para dispositivos móveis
 - Controles responsivos
 - Carregamento rápido
+- Inteligência artificial eficiente para inimigos
 - Sem necessidade de instalação
 
 ## 🎪 Diversão Extra
 
 - Tente fazer a maior pontuação possível!
+- Veja quantos inimigos consegue eliminar
 - Desafie seus amigos compartilhando o link
 - Tente chegar ao nível mais alto que conseguir
-- Veja quantos inimigos consegue enfrentar simultaneamente
+- Desenvolva estratégias com o sistema de tiro
 
 ---
 

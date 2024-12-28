@@ -129,6 +129,55 @@
             background: rgba(74, 85, 104, 0.9);
         }
        
+        .bullet {
+            background-color: white;
+            border-radius: 50%;
+            width: 10px !important;
+            height: 10px !important;
+            position: relative;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            animation: shine 1s infinite;
+        }
+
+        .shot {
+            position: relative;
+        }
+
+        .shot::after {
+            content: '';
+            position: absolute;
+            background-color: white;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .enemy-hit {
+            animation: explode 0.3s ease-out;
+            z-index: 10;
+        }
+
+        @keyframes explode {
+            0% { 
+                transform: scale(1); 
+                background-color: #f56565;
+            }
+            50% { 
+                transform: scale(1.8); 
+                background-color: #ff9999;
+                box-shadow: 0 0 20px #ff0000;
+            }
+            100% { 
+                transform: scale(1); 
+                background-color: #f56565;
+            }
+        }
+
         @keyframes pulse {
             0% { transform: scale(0.95); }
             50% { transform: scale(1.05); }
@@ -149,6 +198,7 @@
                 <div>Nível: <span id="level">1</span></div>
                 <div>Pontuação: <span id="score">0</span></div>
                 <div>Tesouros: <span id="treasures">0</span></div>
+                <div>Balas: <span id="bullets">0</span></div>
             </div>
             <div class="mb-2" id="lives"></div>
         </div>
@@ -160,8 +210,11 @@
                 <div class="control-btn text-center" id="btnUp">🔼</div>
                 <div></div>
                 <div class="control-btn text-center" id="btnLeft">◀️</div>
-                <div class="control-btn text-center" id="btnDown">🔽</div>
+                <div class="control-btn text-center" id="btnShoot">🎯</div>
                 <div class="control-btn text-center" id="btnRight">▶️</div>
+                <div></div>
+                <div class="control-btn text-center" id="btnDown">🔽</div>
+                <div></div>
             </div>
         </div>
     </div>
@@ -195,6 +248,9 @@
         let moveSpeed = 150; // Velocidade inicial de movimento
         let holdStartTime = 0;
         let currentDirection = null;
+        let bullets = 0;
+        let shots = [];
+        let lastDirection = 'right'; // Direção inicial do jogador
 
         function createMaze() {
             maze = Array(MAZE_SIZE).fill().map(() => Array(MAZE_SIZE).fill(1));
@@ -227,7 +283,7 @@
             
             recursiveBacktracking(1, 1);
             
-            // Aumenta o número de caminhos extras
+            // Aumenta o número de caminhos extras (era MAZE_SIZE * 1.5)
             for (let i = 0; i < MAZE_SIZE * 3; i++) {
                 const x = Math.floor(Math.random() * (MAZE_SIZE - 2)) + 1;
                 const y = Math.floor(Math.random() * (MAZE_SIZE - 2)) + 1;
@@ -242,18 +298,23 @@
                         maze[ny][nx] === 0
                     );
                     
-                    if (neighbors.length >= 2 && Math.random() < 0.7) { // Aumentou probabilidade
+                    // Aumenta a probabilidade de criar caminhos (era neighbors.length >= 2)
+                    if (neighbors.length >= 1 && Math.random() < 0.8) { // Aumentou probabilidade também
                         maze[y][x] = 0;
                     }
                 }
             }
             
-            // Garante área aberta perto do jogador
+            // Garante áreas mais abertas perto do jogador e inimigo
             for (let dy = -1; dy <= 1; dy++) {
                 for (let dx = -1; dx <= 1; dx++) {
                     if (1 + dx > 0 && 1 + dx < MAZE_SIZE - 1 && 
                         1 + dy > 0 && 1 + dy < MAZE_SIZE - 1) {
                         maze[1 + dy][1 + dx] = 0;
+                    }
+                    if (MAZE_SIZE - 2 + dx > 0 && MAZE_SIZE - 2 + dx < MAZE_SIZE - 1 && 
+                        MAZE_SIZE - 2 + dy > 0 && MAZE_SIZE - 2 + dy < MAZE_SIZE - 1) {
+                        maze[MAZE_SIZE - 2 + dy][MAZE_SIZE - 2 + dx] = 0;
                     }
                 }
             }
@@ -335,11 +396,29 @@
                     if (x === player.x && y === player.y) {
                         cell.classList.add('player');
                     }
+
                     if (enemies.some(e => e.x === x && e.y === y)) {
                         cell.classList.add('enemy');
+                        const enemy = enemies.find(e => e.x === x && e.y === y);
+                        if (enemy.exploding) {
+                            cell.classList.add('enemy-hit');
+                        }
                     }
+
                     if (treasures.some(t => t.x === x && t.y === y)) {
                         cell.classList.add('treasure');
+                    }
+
+                    // Adicione renderização de tiros
+                    if (shots.some(shot => shot.x === x && shot.y === y)) {
+                        cell.classList.add('shot');
+                    }
+                    
+                    // Adicione renderização de balas coletáveis
+                    if (maze[y][x] === 2) { // 2 representa uma bala coletável
+                        const bullet = document.createElement('div');
+                        bullet.className = 'bullet';
+                        cell.appendChild(bullet);
                     }
                     
                     row.appendChild(cell);
@@ -353,7 +432,66 @@
             updateLives();
         }
 
+        function findPathToPlayer(enemy) {
+            const queue = [{x: enemy.x, y: enemy.y, path: []}];
+            const visited = new Set();
+            
+            // Função auxiliar para gerar chave única para cada posição
+            const posKey = (x, y) => `${x},${y}`;
+            visited.add(posKey(enemy.x, enemy.y));
+            
+            while (queue.length > 0) {
+                const current = queue.shift();
+                
+                // Se encontrou o jogador, retorna o primeiro movimento do caminho
+                if (current.x === player.x && current.y === player.y) {
+                    if (current.path.length > 0) {
+                        return current.path[0];
+                    }
+                    return null;
+                }
+                
+                // Verifica todas as direções possíveis
+                const directions = [
+                    {dx: 0, dy: -1}, // cima
+                    {dx: 1, dy: 0},  // direita
+                    {dx: 0, dy: 1},  // baixo
+                    {dx: -1, dy: 0}  // esquerda
+                ];
+                
+                for (const dir of directions) {
+                    const nextX = current.x + dir.dx;
+                    const nextY = current.y + dir.dy;
+                    const key = posKey(nextX, nextY);
+                    
+                    if (nextX >= 0 && nextX < MAZE_SIZE && 
+                        nextY >= 0 && nextY < MAZE_SIZE && 
+                        maze[nextY][nextX] === 0 && 
+                        !visited.has(key)) {
+                        
+                        visited.add(key);
+                        const newPath = [...current.path, {x: nextX, y: nextY}];
+                        queue.push({x: nextX, y: nextY, path: newPath});
+                    }
+                }
+            }
+            
+            return null;
+        }
+
         function moveEnemy(enemy) {
+            if (enemy.exploding) return;
+            
+            // Encontra o próximo movimento no melhor caminho
+            const nextMove = findPathToPlayer(enemy);
+            
+            if (nextMove) {
+                enemy.x = nextMove.x;
+                enemy.y = nextMove.y;
+                return;
+            }
+            
+            // Se não encontrar caminho, usa o movimento antigo como fallback
             const dx = player.x - enemy.x;
             const dy = player.y - enemy.y;
             
@@ -376,41 +514,37 @@
             else if (moveY !== 0 && maze[enemy.y + moveY][enemy.x] === 0) {
                 enemy.y += moveY;
             }
-            else {
-                const possibleMoves = [
-                    {x: 1, y: 0}, {x: -1, y: 0},
-                    {x: 0, y: 1}, {x: 0, y: -1}
-                ].filter(move => 
-                    maze[enemy.y + move.y][enemy.x + move.x] === 0
-                );
-                
-                if (possibleMoves.length > 0) {
-                    const randomMove = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
-                    enemy.x += randomMove.x;
-                    enemy.y += randomMove.y;
-                }
-            }
         }
 
         function checkCollision() {
             if (isGameOver) return;
 
-            if (enemies.some(enemy => enemy.x === player.x && enemy.y === player.y)) {
+            // Verifica colisão com inimigos
+            const hitEnemy = enemies.find(enemy => 
+                enemy.x === player.x && 
+                enemy.y === player.y && 
+                !enemy.exploding  // Adiciona esta verificação
+            );
+
+            if (hitEnemy) {
                 lives--;
                 updateLives();
                 
                 if (lives <= 0) {
                     gameOver();
                 } else {
+                    // Reposiciona o jogador e inimigos
                     player = { x: 1, y: 1 };
                     enemies.forEach(enemy => {
-                        enemy.x = MAZE_SIZE - 2;
-                        enemy.y = MAZE_SIZE - 2;
+                        const newPos = createEnemy();
+                        enemy.x = newPos.x;
+                        enemy.y = newPos.y;
                     });
                 }
                 return;
             }
             
+            // Verifica coleta de tesouro
             const treasureIndex = treasures.findIndex(t => t.x === player.x && t.y === player.y);
             if (treasureIndex !== -1) {
                 treasures.splice(treasureIndex, 1);
@@ -420,6 +554,12 @@
                     levelUp();
                 }
             }
+
+            // Verifica coleta de balas
+            if (maze[player.y][player.x] === 2) {
+                maze[player.y][player.x] = 0;
+                addBullet();
+            }
         }
 
         function levelUp() {
@@ -428,8 +568,8 @@
             maze = createMaze();
             player = { x: 1, y: 1 };
             
-            // Adiciona novo inimigo a cada 3 níveis
-            if (level % 3 === 0) {
+            // Adiciona novo inimigo a cada 5 níveis
+            if (level % 5 === 0) {
                 enemies.push(createEnemy());
             }
             
@@ -453,6 +593,8 @@
             level = 1;
             score = 0;
             lives = 5;
+            bullets = 5; // Começa com algumas balas
+            updateBulletsDisplay();
             maze = createMaze();
             player = { x: 1, y: 1 };
             enemies = [createEnemy()];
@@ -467,18 +609,47 @@
             moveCounter = 0;
             gameInterval = setInterval(() => {
                 moveCounter++;
-                if (moveCounter % 2 === 0) {
+                if (moveCounter % 3 === 0) {
                     enemies.forEach(moveEnemy);
                 }
+                updateShots(); // Certifique-se de que esta linha está presente
                 checkCollision();
                 renderMaze();
+                
+                // Chance de gerar nova bala (3%)
+                if (Math.random() < 0.03) {
+                    generateNewBullet();
+                }
             }, 200);
         }
 
+        function updateBulletsDisplay() {
+            document.getElementById('bullets').textContent = bullets;
+        }
 
-      function movePlayer(direction) {
+        function generateNewBullet() {
+            for (let i = 0; i < 20; i++) { // Mais tentativas para encontrar posição válida
+                const x = Math.floor(Math.random() * (MAZE_SIZE - 2)) + 1;
+                const y = Math.floor(Math.random() * (MAZE_SIZE - 2)) + 1;
+                
+                // Verifica se está longe de jogador e inimigos
+                const farFromPlayer = Math.abs(x - player.x) + Math.abs(y - player.y) > 3;
+                const farFromEnemies = !enemies.some(e => 
+                    Math.abs(e.x - x) < 3 && Math.abs(e.y - y) < 3
+                );
+                
+                if (maze[y][x] === 0 && farFromPlayer && farFromEnemies) {
+                    maze[y][x] = 2;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function movePlayer(direction) {
             if (isGameOver) return;
 
+            lastDirection = direction;
             const newPlayer = { ...player };
             
             if (direction === 'up') newPlayer.y--;
@@ -486,7 +657,8 @@
             else if (direction === 'left') newPlayer.x--;
             else if (direction === 'right') newPlayer.x++;
             
-            if (maze[newPlayer.y][newPlayer.x] === 0) {
+            // Modifique esta linha para permitir movimento sobre balas (valor 2)
+            if (maze[newPlayer.y][newPlayer.x] === 0 || maze[newPlayer.y][newPlayer.x] === 2) {
                 player = newPlayer;
                 checkCollision();
                 renderMaze();
@@ -521,6 +693,13 @@
             else if (key === 'ArrowDown') movePlayer('down');
             else if (key === 'ArrowLeft') movePlayer('left');
             else if (key === 'ArrowRight') movePlayer('right');
+
+            // Controle do tiro
+            if (e.key === ' ' || e.code === 'Space') {
+                shoot();
+                return;
+            }
+            
         });
 
         // Opcionalmente, também previna o scroll quando as teclas estiverem pressionadas
@@ -580,6 +759,113 @@
             holdStartTime = 0;
         }
 
+        function addBullet() {
+            bullets++;
+            updateBulletsDisplay();
+        }
+
+        function updateBulletsDisplay() {
+            const bulletDisplay = document.getElementById('bullets');
+            bulletDisplay.textContent = bullets;
+        }
+
+        function shoot() {
+            if (bullets <= 0) return;
+            
+            // Inicia o tiro na mesma posição do jogador
+            const shot = {
+                x: player.x,
+                y: player.y,
+                direction: lastDirection
+            };
+            
+            // Verifica se a próxima posição é válida antes de criar o tiro
+            let validShot = false;
+            switch(lastDirection) {
+                case 'up':
+                    if (maze[player.y - 1][player.x] !== 1) {
+                        validShot = true;
+                    }
+                    break;
+                case 'down':
+                    if (maze[player.y + 1][player.x] !== 1) {
+                        validShot = true;
+                    }
+                    break;
+                case 'left':
+                    if (maze[player.y][player.x - 1] !== 1) {
+                        validShot = true;
+                    }
+                    break;
+                case 'right':
+                    if (maze[player.y][player.x + 1] !== 1) {
+                        validShot = true;
+                    }
+                    break;
+            }
+            
+            if (validShot) {
+                bullets--;
+                updateBulletsDisplay();
+                shots.push(shot);
+            }
+        }
+
+        function updateShots() {
+            for (let i = shots.length - 1; i >= 0; i--) {
+                const shot = shots[i];
+                let nextX = shot.x;
+                let nextY = shot.y;
+                
+                switch(shot.direction) {
+                    case 'up': nextY--; break;
+                    case 'down': nextY++; break;
+                    case 'left': nextX--; break;
+                    case 'right': nextX++; break;
+                }
+                
+                // Remove tiro se bater em parede
+                if (maze[nextY][nextX] === 1) {
+                    shots.splice(i, 1);
+                    continue;
+                }
+                
+                // Verifica colisão com inimigos na posição atual E na próxima posição
+                const hitEnemy = enemies.findIndex(enemy => {
+                    // Verifica colisão na posição atual da bala
+                    if (enemy.x === shot.x && enemy.y === shot.y) return true;
+                    // Verifica colisão na próxima posição da bala
+                    if (enemy.x === nextX && enemy.y === nextY) return true;
+                    // Verifica se o inimigo e a bala "cruzaram" caminhos
+                    if (enemy.x === nextX && enemy.y === shot.y) return true;
+                    if (enemy.x === shot.x && enemy.y === nextY) return true;
+                    return false;
+                });
+                
+                if (hitEnemy !== -1 && !enemies[hitEnemy].exploding) {
+                    enemies[hitEnemy].exploding = true;
+                    shots.splice(i, 1);
+                    
+                    // Posição atual do inimigo atingido
+                    const currentX = enemies[hitEnemy].x;
+                    const currentY = enemies[hitEnemy].y;
+                    
+                    setTimeout(() => {
+                        if (enemies[hitEnemy]) {
+                            enemies[hitEnemy].exploding = false;
+                            const newPos = createEnemy();
+                            enemies[hitEnemy].x = newPos.x;
+                            enemies[hitEnemy].y = newPos.y;
+                        }
+                    }, 300);
+                    continue;
+                }
+                
+                shot.x = nextX;
+                shot.y = nextY;
+            }
+        }
+
         // Atualiza os event listeners dos botões
         ['Up', 'Down', 'Left', 'Right'].forEach(direction => {
             const btn = document.getElementById(`btn${direction}`);
@@ -610,6 +896,15 @@
             });
         });
 
+        // Mobile
+        document.getElementById('btnShoot').addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            shoot();
+        });
+
+        document.getElementById('btnShoot').addEventListener('click', () => {
+            shoot();
+        });
 
         // Inicia o jogo
         startGame();
