@@ -20,6 +20,7 @@ Um jogo de labirinto desafiador onde você precisa coletar tesouros enquanto fog
 - Pressione Enter para reiniciar após Game Over
 
 ### Mobile
+- Faça um scrollzinho para baixo para evitar clicar na propaganda
 - Use os botões direcionais na tela
 - Mantenha pressionado um botão para mover mais rápido
 - Use o botão de tiro (🎯) para atirar
