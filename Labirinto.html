@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Labirinto dos Tesouros</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+       
+        body {
+            background-color: #1a202c;
+            color: white;
+            touch-action: pan-x pan-y;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .game-container {
+            flex: 1;
+            width: 100%;
+            max-width: 100%;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .maze-wrapper {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            padding-bottom: 120px; /* Espaço para os controles */
+        }
+
+        .controls {
+            position: sticky;
+            bottom: 20px;
+            display: none;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            max-width: 240px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 12px;
+            z-index: 100;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 768px) {
+            .controls { 
+                display: grid;
+                bottom: 20px;
+            }
+        }
+
+        .maze-container {
+            display: inline-block;
+            border: 2px solid #4a5568;
+            padding: 2px;
+            background-color: #1a202c;
+        }
+        .maze-row {
+            display: flex;
+            margin: 0;
+            padding: 0;
+        }
+        .cell {
+            width: min(32px, 6vw);
+            height: min(32px, 6vw);
+            margin: 0;
+            padding: 0;
+            border: 1px solid #2d3748;
+        }
+        .wall { background-color: #1a202c; }
+        .path { background-color: #2d3748; }
+        .player {
+            background-color: #48bb78;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        .enemy {
+            background-color: #f56565;
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+        .treasure {
+            background-color: #f6e05e;
+            animation: shine 1s infinite;
+        }
+        .game-over {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .game-over.active { display: flex; }
+        .heart-full {
+            color: #f56565;
+            display: inline-block;
+            margin: 0 2px;
+        }
+        .heart-empty {
+            color: #4a5568;
+            display: inline-block;
+            margin: 0 2px;
+        }
+        .control-btn {
+            background: rgba(74, 85, 104, 0.7);
+            border-radius: 8px;
+            padding: 15px;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .control-btn:active {
+            background: rgba(74, 85, 104, 0.9);
+        }
+       
+        @keyframes pulse {
+            0% { transform: scale(0.95); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(0.95); }
+        }
+        @keyframes shine {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4">
+    <div class="game-container">
+        <div class="text-white mb-4 text-center">
+            <h1 class="text-3xl font-bold mb-2">Labirinto dos Tesouros</h1>
+            <div class="flex justify-center items-center space-x-6">
+                <div>Nível: <span id="level">1</span></div>
+                <div>Pontuação: <span id="score">0</span></div>
+                <div>Tesouros: <span id="treasures">0</span></div>
+            </div>
+            <div class="mb-2" id="lives"></div>
+        </div>
+        
+        <div class="maze-wrapper">
+            <div id="maze" class="maze-container"></div>
+            <div class="controls">
+                <div></div>
+                <div class="control-btn text-center" id="btnUp">🔼</div>
+                <div></div>
+                <div class="control-btn text-center" id="btnLeft">◀️</div>
+                <div class="control-btn text-center" id="btnDown">🔽</div>
+                <div class="control-btn text-center" id="btnRight">▶️</div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="gameOver" class="game-over">
+        <div class="bg-gray-800 p-8 rounded-lg text-white text-center">
+            <h2 class="text-2xl mb-4">Game Over!</h2>
+            <p class="mb-4">Pontuação Final: <span id="finalScore">0</span></p>
+            <p class="hidden md:block mb-4 text-gray-400">Pressione Enter para jogar novamente</p>
+            <button onclick="startGame()" class="md:hidden bg-green-500 px-4 py-2 rounded hover:bg-green-600">
+                Clique aqui para jogar novamente
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const MAZE_SIZE = 15;
+        let maze = [];
+        let player = { x: 1, y: 1 };
+        let enemies = [];
+        let treasures = [];
+        let level = 1;
+        let score = 0;
+        let lives = 3;
+        let gameInterval;
+        let isGameOver = false;
+        let moveCounter = 0;
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let moveInterval = null;
+        let moveSpeed = 150; // Velocidade inicial de movimento
+        let holdStartTime = 0;
+        let currentDirection = null;
+
+        function createMaze() {
+            maze = Array(MAZE_SIZE).fill().map(() => Array(MAZE_SIZE).fill(1));
+            
+            function recursiveBacktracking(x, y) {
+                const directions = [[0, -2], [2, 0], [0, 2], [-2, 0]];
+                
+                for (let i = directions.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [directions[i], directions[j]] = [directions[j], directions[i]];
+                }
+                
+                maze[y][x] = 0;
+                
+                for (const [dx, dy] of directions) {
+                    const nextX = x + dx;
+                    const nextY = y + dy;
+                    const middleX = x + dx/2;
+                    const middleY = y + dy/2;
+                    
+                    if (nextX > 0 && nextX < MAZE_SIZE - 1 && 
+                        nextY > 0 && nextY < MAZE_SIZE - 1 && 
+                        maze[nextY][nextX] === 1) {
+                        maze[middleY][middleX] = 0;
+                        maze[nextY][nextX] = 0;
+                        recursiveBacktracking(nextX, nextY);
+                    }
+                }
+            }
+            
+            recursiveBacktracking(1, 1);
+            
+            // Aumenta o número de caminhos extras
+            for (let i = 0; i < MAZE_SIZE * 3; i++) {
+                const x = Math.floor(Math.random() * (MAZE_SIZE - 2)) + 1;
+                const y = Math.floor(Math.random() * (MAZE_SIZE - 2)) + 1;
+                
+                if (maze[y][x] === 1) {
+                    const neighbors = [
+                        [x+1, y], [x-1, y],
+                        [x, y+1], [x, y-1]
+                    ].filter(([nx, ny]) => 
+                        nx > 0 && nx < MAZE_SIZE - 1 &&
+                        ny > 0 && ny < MAZE_SIZE - 1 &&
+                        maze[ny][nx] === 0
+                    );
+                    
+                    if (neighbors.length >= 2 && Math.random() < 0.7) { // Aumentou probabilidade
+                        maze[y][x] = 0;
+                    }
+                }
+            }
+            
+            // Garante área aberta perto do jogador
+            for (let dy = -1; dy <= 1; dy++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                    if (1 + dx > 0 && 1 + dx < MAZE_SIZE - 1 && 
+                        1 + dy > 0 && 1 + dy < MAZE_SIZE - 1) {
+                        maze[1 + dy][1 + dx] = 0;
+                    }
+                }
+            }
+            
+            maze[1][1] = 0;
+            maze[MAZE_SIZE - 2][MAZE_SIZE - 2] = 0;
+            
+            return maze;
+        }
+
+        function createEnemy(x, y) {
+            if (!x || !y) {
+                // Tenta 20 vezes encontrar uma posição válida
+                for (let i = 0; i < 20; i++) {
+                    x = Math.floor(Math.random() * (MAZE_SIZE - 4)) + 2;
+                    y = Math.floor(Math.random() * (MAZE_SIZE - 4)) + 2;
+                    
+                    // Verifica se a posição é válida, longe de outros inimigos e do jogador
+                    const distanceFromPlayer = Math.abs(player.x - x) + Math.abs(player.y - y);
+                    if (maze[y][x] === 0 && 
+                        !enemies.some(e => Math.abs(e.x - x) < 4 && Math.abs(e.y - y) < 4) &&
+                        distanceFromPlayer > 8) {
+                        break;
+                    }
+                }
+                // Se não encontrar posição ideal, coloca no canto oposto ao jogador
+                if (maze[y][x] !== 0 || (Math.abs(player.x - x) + Math.abs(player.y - y)) <= 8) {
+                    x = MAZE_SIZE - 2;
+                    y = MAZE_SIZE - 2;
+                }
+            }
+            return { x, y };
+        }
+
+        function placeTreasures() {
+            const numTreasures = Math.min(3 + Math.floor(level / 2), 10);
+            treasures = [];
+            
+            while (treasures.length < numTreasures) {
+                const x = Math.floor(Math.random() * (MAZE_SIZE - 2)) + 1;
+                const y = Math.floor(Math.random() * (MAZE_SIZE - 2)) + 1;
+                
+                if (maze[y][x] === 0 && 
+                    !treasures.some(t => t.x === x && t.y === y) &&
+                    !(x === player.x && y === player.y) &&
+                    !enemies.some(e => e.x === x && e.y === y)) {
+                    treasures.push({x, y});
+                }
+            }
+        }
+
+        function updateLives() {
+            const livesContainer = document.getElementById('lives');
+            const heartsHtml = Array(5).fill(0).map((_, i) => // Mudado de 3 para 5
+                i < lives ? '❤️' : '<span style="opacity: 0.3">❤️</span>'
+            ).join('');
+            livesContainer.innerHTML = heartsHtml;
+        }
+
+
+        function renderMaze() {
+            const mazeElement = document.getElementById('maze');
+            mazeElement.innerHTML = '';
+            
+            for (let y = 0; y < MAZE_SIZE; y++) {
+                const row = document.createElement('div');
+                row.className = 'maze-row';
+                
+                for (let x = 0; x < MAZE_SIZE; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    
+                    if (maze[y][x] === 1) {
+                        cell.classList.add('wall');
+                    } else {
+                        cell.classList.add('path');
+                    }
+                    
+                    if (x === player.x && y === player.y) {
+                        cell.classList.add('player');
+                    }
+                    if (enemies.some(e => e.x === x && e.y === y)) {
+                        cell.classList.add('enemy');
+                    }
+                    if (treasures.some(t => t.x === x && t.y === y)) {
+                        cell.classList.add('treasure');
+                    }
+                    
+                    row.appendChild(cell);
+                }
+                mazeElement.appendChild(row);
+            }
+
+            document.getElementById('level').textContent = level;
+            document.getElementById('score').textContent = score;
+            document.getElementById('treasures').textContent = treasures.length;
+            updateLives();
+        }
+
+        function moveEnemy(enemy) {
+            const dx = player.x - enemy.x;
+            const dy = player.y - enemy.y;
+            
+            let moveX = 0;
+            let moveY = 0;
+            
+            if (Math.abs(dx) > Math.abs(dy)) {
+                moveX = dx > 0 ? 1 : -1;
+            } else {
+                moveY = dy > 0 ? 1 : -1;
+            }
+            
+            if (maze[enemy.y + moveY][enemy.x + moveX] === 0) {
+                enemy.x += moveX;
+                enemy.y += moveY;
+            } 
+            else if (moveX !== 0 && maze[enemy.y][enemy.x + moveX] === 0) {
+                enemy.x += moveX;
+            } 
+            else if (moveY !== 0 && maze[enemy.y + moveY][enemy.x] === 0) {
+                enemy.y += moveY;
+            }
+            else {
+                const possibleMoves = [
+                    {x: 1, y: 0}, {x: -1, y: 0},
+                    {x: 0, y: 1}, {x: 0, y: -1}
+                ].filter(move => 
+                    maze[enemy.y + move.y][enemy.x + move.x] === 0
+                );
+                
+                if (possibleMoves.length > 0) {
+                    const randomMove = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
+                    enemy.x += randomMove.x;
+                    enemy.y += randomMove.y;
+                }
+            }
+        }
+
+        function checkCollision() {
+            if (isGameOver) return;
+
+            if (enemies.some(enemy => enemy.x === player.x && enemy.y === player.y)) {
+                lives--;
+                updateLives();
+                
+                if (lives <= 0) {
+                    gameOver();
+                } else {
+                    player = { x: 1, y: 1 };
+                    enemies.forEach(enemy => {
+                        enemy.x = MAZE_SIZE - 2;
+                        enemy.y = MAZE_SIZE - 2;
+                    });
+                }
+                return;
+            }
+            
+            const treasureIndex = treasures.findIndex(t => t.x === player.x && t.y === player.y);
+            if (treasureIndex !== -1) {
+                treasures.splice(treasureIndex, 1);
+                score += 100 * level;
+                
+                if (treasures.length === 0) {
+                    levelUp();
+                }
+            }
+        }
+
+        function levelUp() {
+            level++;
+            score += 500 * level;
+            maze = createMaze();
+            player = { x: 1, y: 1 };
+            
+            // Adiciona novo inimigo a cada 3 níveis
+            if (level % 3 === 0) {
+                enemies.push(createEnemy());
+            }
+            
+            // Reposiciona todos os inimigos aleatoriamente
+            enemies = enemies.map(() => createEnemy());
+            
+            placeTreasures();
+        }
+
+        function gameOver() {
+            stopContinuousMove();
+            isGameOver = true;
+            clearInterval(gameInterval);
+            document.getElementById('gameOver').classList.add('active');
+            document.getElementById('finalScore').textContent = score;
+        }
+
+        function startGame() {
+            stopContinuousMove();
+            isGameOver = false;
+            level = 1;
+            score = 0;
+            lives = 5;
+            maze = createMaze();
+            player = { x: 1, y: 1 };
+            enemies = [createEnemy()];
+            placeTreasures();
+            document.getElementById('gameOver').classList.remove('active');
+            updateLives();
+            
+            if (gameInterval) {
+                clearInterval(gameInterval);
+            }
+            
+            moveCounter = 0;
+            gameInterval = setInterval(() => {
+                moveCounter++;
+                if (moveCounter % 2 === 0) {
+                    enemies.forEach(moveEnemy);
+                }
+                checkCollision();
+                renderMaze();
+            }, 200);
+        }
+
+
+      function movePlayer(direction) {
+            if (isGameOver) return;
+
+            const newPlayer = { ...player };
+            
+            if (direction === 'up') newPlayer.y--;
+            else if (direction === 'down') newPlayer.y++;
+            else if (direction === 'left') newPlayer.x--;
+            else if (direction === 'right') newPlayer.x++;
+            
+            if (maze[newPlayer.y][newPlayer.x] === 0) {
+                player = newPlayer;
+                checkCollision();
+                renderMaze();
+            }
+        }
+
+        // Controles de teclado
+        // Adicione esta função para prevenir as teclas padrão
+        function preventDefaultForArrowKeys(e) {
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
+                e.preventDefault();
+            }
+        }
+
+        // Modifique o event listener do teclado para incluir a prevenção
+        document.addEventListener('keydown', (e) => {
+            // Previne scroll com teclas direcionais
+            preventDefaultForArrowKeys(e);
+
+            // Lógica de game over e Enter
+            if (isGameOver && e.key === 'Enter') {
+                startGame();
+                return;
+            }
+
+            // Movimento do jogador
+            if (isGameOver) return;
+
+            const key = e.key;
+            
+            if (key === 'ArrowUp') movePlayer('up');
+            else if (key === 'ArrowDown') movePlayer('down');
+            else if (key === 'ArrowLeft') movePlayer('left');
+            else if (key === 'ArrowRight') movePlayer('right');
+        });
+
+        // Opcionalmente, também previna o scroll quando as teclas estiverem pressionadas
+        document.addEventListener('keypress', preventDefaultForArrowKeys);
+
+        // Previne comportamentos indesejados do touch
+        document.addEventListener('touchstart', (e) => {
+            if (e.target.classList.contains('control-btn')) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        // Impede que o usuário dê zoom na tela mobile com double tap
+        document.addEventListener('dblclick', (e) => {
+            e.preventDefault();
+        }, { passive: false });
+
+        
+        // Função auxiliar para iniciar movimento contínuo
+        function startContinuousMove(direction) {
+            if (moveInterval && currentDirection === direction) return;
+            
+            stopContinuousMove(); // Limpa qualquer movimento anterior
+            currentDirection = direction;
+            holdStartTime = Date.now();
+            
+            movePlayer(direction); // Move imediatamente
+            
+            moveInterval = setInterval(() => {
+                movePlayer(direction);
+                
+                // Calcula quanto tempo o botão está sendo segurado
+                const holdDuration = Date.now() - holdStartTime;
+                
+                // Ajusta a velocidade baseado no tempo segurado
+                if (holdDuration > 500) { // Após 0.5 segundo
+                    clearInterval(moveInterval);
+                    moveInterval = setInterval(() => {
+                        movePlayer(direction);
+                    }, 30); // Muito rápido
+                } else if (holdDuration > 200) { // Após 0.2 segundos
+                    clearInterval(moveInterval);
+                    moveInterval = setInterval(() => {
+                        movePlayer(direction);
+                    }, 100); // Rápido
+                }
+            }, moveSpeed);
+        }
+
+        function stopContinuousMove() {
+            if (moveInterval) {
+                clearInterval(moveInterval);
+                moveInterval = null;
+            }
+            moveSpeed = 150; // Reseta a velocidade
+            currentDirection = null;
+            holdStartTime = 0;
+        }
+
+        // Atualiza os event listeners dos botões
+        ['Up', 'Down', 'Left', 'Right'].forEach(direction => {
+            const btn = document.getElementById(`btn${direction}`);
+            const dir = direction.toLowerCase();
+
+            // Touch events
+            btn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                startContinuousMove(dir);
+            });
+
+            btn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                stopContinuousMove();
+            });
+
+            // Mouse events para desktop
+            btn.addEventListener('mousedown', () => {
+                startContinuousMove(dir);
+            });
+
+            btn.addEventListener('mouseup', () => {
+                stopContinuousMove();
+            });
+
+            btn.addEventListener('mouseleave', () => {
+                stopContinuousMove();
+            });
+        });
+
+
+        // Inicia o jogo
+        startGame();
+    </script>
+</body>
+</html>
