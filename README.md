@@ -32,10 +32,10 @@ Um jogo de labirinto desafiador onde você precisa coletar tesouros enquanto fog
 - 🗺️ Labirintos gerados aleatoriamente
 - 🔄 Dificuldade progressiva
 - ⚡ Movimento acelerado ao manter botão/tecla pressionado
-- 💖 5 vidas em mobile, 3 vidas em desktop
-- 👾 Novo inimigo a cada 5 níveis
-- 🔫 Sistema de tiro com munição coletável
-- 🎯 Inimigos podem ser eliminados com tiros
+- 💖 5 vidas
+- 👾 Novo inimigo perseguidores implacáveis a cada 5 níveis até total de 4 inimigos
+- 🔫 Sistema de tiro com munição coletável aumentando a cada nível
+- 🎯 Inimigos podem ser eliminados com tiros (auto mira, tiro sempre vai pro inimigo)
 - 📱 Suporte completo para desktop e mobile
 
 ## 🏆 Sistema de Pontuação
