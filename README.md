@@ -1,6 +1,6 @@
 # 🎮 Labirinto dos Tesouros
 
-Um jogo de labirinto desafiador onde você precisa coletar tesouros enquanto foge de inimigos! Explore labirintos gerados proceduralmente, colete tesouros, encontre munição e elimine inimigos! Tente sobreviver o máximo possível.
+Um jogo de labirinto desafiador onde você precisa coletar tesouros enquanto foge e mata inimigos! Explore labirintos gerados proceduralmente, colete tesouros, encontre munição e elimine inimigos! Tente sobreviver o máximo possível.
 
 🎯 **Jogue agora (abre em nova aba)**: [https://labirinto.tiiny.site/](https://labirinto.tiiny.site/)
 
@@ -9,7 +9,7 @@ Um jogo de labirinto desafiador onde você precisa coletar tesouros enquanto fog
 - Colete todos os tesouros dourados (✨) em cada nível
 - Evite ou elimine os inimigos vermelhos (🔴)
 - Colete munição branca (⚪) para atirar nos inimigos
-- Sobreviva o máximo possível e faça a maior pontuação!
+- Sobreviva o máximo possível e faça a maior pontuação antingindo maior nível!
 
 ## 🎮 Controles
 
@@ -18,13 +18,15 @@ Um jogo de labirinto desafiador onde você precisa coletar tesouros enquanto fog
 - Mantenha pressionada uma tecla para mover mais rápido
 - Pressione ESPAÇO para atirar
 - Pressione Enter para reiniciar após Game Over
+- Botão ⏸️ ou tecla "P" para pausar o jogo
 
 ### Mobile
 - Faça um scrollzinho para baixo para evitar clicar na propaganda
 - Use os botões direcionais na tela
 - Mantenha pressionado um botão para mover mais rápido
-- Use o botão de tiro (🎯) para atirar
+- Use o botão de tiro (⚪) para atirar
 - Toque no botão "Jogar Novamente" após Game Over
+- Toque no botão ⏸️ para pausar o jogo
 
 ## 🌟 Características
 
@@ -32,7 +34,7 @@ Um jogo de labirinto desafiador onde você precisa coletar tesouros enquanto fog
 - 🗺️ Labirintos gerados aleatoriamente
 - 🔄 Dificuldade progressiva
 - ⚡ Movimento acelerado ao manter botão/tecla pressionado
-- 💖 5 vidas
+- 💖 7 vidas
 - 👾 Novo inimigo perseguidores implacáveis a cada 5 níveis até total de 4 inimigos
 - 🔫 Sistema de tiro com munição coletável aumentando a cada nível
 - 🎯 Inimigos podem ser eliminados com tiros (auto mira, tiro sempre vai pro inimigo)
@@ -56,7 +58,7 @@ Um jogo de labirinto desafiador onde você precisa coletar tesouros enquanto fog
 ## 🎯 Progressão
 
 1. Cada nível tem mais tesouros para coletar
-2. A cada 5 níveis, um novo inimigo é adicionado
+2. A cada 5 níveis, um novo inimigo é adicionado até máximo de 4
 3. Inimigos usam inteligência artificial para encontrar o melhor caminho até você
 4. A pontuação aumenta proporcionalmente ao nível
 

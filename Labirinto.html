@@ -250,15 +250,38 @@
 </head>
 <body class="min-h-screen flex flex-col items-center justify-center p-4">
     <div class="game-container">
+      
         <div class="text-white mb-4 text-center">
-            <h1 class="text-3xl font-bold mb-2">Labirinto dos Tesouros</h1>
-            <div class="flex justify-center items-center space-x-6">
+            <!-- Título -->
+            <div class="w-full max-w-2xl mx-auto mb-2">
+                <h1 class="text-xl md:text-3xl font-bold">Labirinto dos Tesouros</h1>
+            </div>
+            <!-- Container para as informações do jogo -->
+            <div class="flex flex-wrap justify-center gap-4 text-sm md:text-base">
                 <div>Nível: <span id="level">1</span></div>
                 <div>Pontuação: <span id="score">0</span></div>
                 <div>Tesouros: <span id="treasures">0</span></div>
                 <div>Balas: <span id="bullets">0</span></div>
             </div>
-            <div class="mb-2" id="lives"></div>
+            
+            <!-- Container para vidas e botão de pausa -->
+            <div class="flex justify-center items-center gap-4 mb-2">
+                <div id="lives"></div>
+                <button id="pauseButton" class="bg-gray-800 hover:bg-gray-700 text-white font-bold p-0.5 rounded text-xs mt-1">
+                    ⏸️
+                </button>
+            </div>
+        </div>
+        
+        <!-- Adicione o overlay de pausa logo após -->
+        <div id="pauseOverlay" class="fixed inset-0 bg-black bg-opacity-80 hidden flex items-center justify-center z-50">
+            <div class="bg-gray-800 p-8 rounded-lg text-white text-center">
+                <h2 class="text-2xl mb-4">Jogo Pausado</h2>
+                <p class="hidden md:block mb-4 text-gray-400">Pressione P ou clique para continuar</p>
+                <button id="resumeButton" class="bg-green-500 px-4 py-2 rounded hover:bg-green-600">
+                    Continuar
+                </button>
+            </div>
         </div>
         
         <div class="maze-wrapper">
@@ -316,6 +339,7 @@
         let shots = [];
         let lastDirection = 'right'; // Direção inicial do jogador
         let bulletSpawnChance = 0.03;
+        let isPaused = false;
 
         function createMaze() {
             maze = Array(MAZE_SIZE).fill().map(() => Array(MAZE_SIZE).fill(1));
@@ -438,7 +462,7 @@
 
         function updateLives() {
             const livesContainer = document.getElementById('lives');
-            const heartsHtml = Array(5).fill(0).map((_, i) => 
+            const heartsHtml = Array(7).fill(0).map((_, i) => 
                 i < lives ? '❤️' : '<span style="opacity: 0.3">❤️</span>'
             ).join('');
             livesContainer.innerHTML = heartsHtml;
@@ -671,8 +695,8 @@
             isGameOver = false;
             level = 1; // Para começar em nível diferente, altere aqui
             score = 0;
-            lives = 5;
-            bullets = 5; // Começa com algumas balas
+            lives = 7;
+            bullets = 15; // Começa com algumas balas
             updateBulletsDisplay();
             maze = createMaze();
             player = { x: 1, y: 1 };
@@ -726,7 +750,7 @@
         }
 
         function movePlayer(direction) {
-            if (isGameOver) return;
+            if (isGameOver || isPaused) return;
 
             lastDirection = direction;
             const newPlayer = { ...player };
@@ -779,6 +803,10 @@
                 return;
             }
             
+            // Tecla P para pausar
+            if (e.key === 'p' || e.key === 'P') {
+                togglePause();
+            }
         });
 
         // Opcionalmente, também previna o scroll quando as teclas estiverem pressionadas
@@ -878,7 +906,8 @@
         }
 
         function shoot() {
-            if (bullets <= 0) return;
+
+            if (bullets <= 0 || isPaused) return;
             
             const nearestEnemy = findNearestEnemy(player.x, player.y);
             if (!nearestEnemy) return; // Não atira se não houver inimigos vivos
@@ -968,6 +997,38 @@
             }
         }
 
+        function togglePause() {
+            if (isGameOver) return;
+            
+            isPaused = !isPaused;
+            const pauseOverlay = document.getElementById('pauseOverlay');
+            
+            if (isPaused) {
+                // Para tudo limpando o intervalo principal do jogo
+                clearInterval(gameInterval);
+                pauseOverlay.classList.remove('hidden');
+            } else {
+                pauseOverlay.classList.add('hidden');
+                // Recria o intervalo principal do jogo
+                gameInterval = setInterval(() => {
+                    if (!isPaused) {
+                        moveCounter++;
+                        if (moveCounter % 3 === 0) {
+                            enemies.forEach(moveEnemy);  // movimento dos inimigos
+                        }
+                        updateShots();  // atualização dos tiros
+                        checkCollision();  // checagem de colisões
+                        renderMaze();  // renderização do labirinto
+                        
+                        // geração de novas balas
+                        if (Math.random() < bulletSpawnChance) {
+                            generateNewBullet();
+                        }
+                    }
+                }, 200);
+            }
+        }
+
         // Atualiza os event listeners dos botões
         ['Up', 'Down', 'Left', 'Right'].forEach(direction => {
             const btn = document.getElementById(`btn${direction}`);
@@ -1007,6 +1068,10 @@
         document.getElementById('btnShoot').addEventListener('click', () => {
             shoot();
         });
+
+        // Pause/Resume
+        document.getElementById('pauseButton').addEventListener('click', togglePause);
+        document.getElementById('resumeButton').addEventListener('click', togglePause);
 
         // Inicia o jogo
         startGame();
