@@ -19,6 +19,7 @@ Um jogo de labirinto desafiador onde você precisa coletar tesouros enquanto fog
 - Pressione ESPAÇO para atirar
 - Pressione Enter para reiniciar após Game Over
 - Botão ⏸️ ou tecla "P" para pausar o jogo
+- Botão 🔊 para mutar ou 🔈 para ligar o som
 
 ### Mobile
 - **Faça um scrollzinho para baixo e para cima para remover a barra de endereço e evitar clicar na propaganda (titulo do jogo deve ficar no topo)**
@@ -27,6 +28,7 @@ Um jogo de labirinto desafiador onde você precisa coletar tesouros enquanto fog
 - Use o botão de tiro (⚪) para atirar
 - Toque no botão "Jogar Novamente" após Game Over
 - Toque no botão ⏸️ para pausar o jogo
+- Toque no botão 🔊 para mutar ou 🔈para ligar o som
 
 ## 🌟 Características
 
@@ -35,7 +37,7 @@ Um jogo de labirinto desafiador onde você precisa coletar tesouros enquanto fog
 - 🔄 Dificuldade progressiva
 - ⚡ Movimento acelerado ao manter botão/tecla pressionado
 - 💖 7 vidas
-- 👾 Novo inimigo perseguidores implacáveis a cada 5 níveis até total de 4 inimigos
+- 👾 Novos inimigos perseguidores implacáveis a cada 5 níveis até total de 4 inimigos
 - 🔫 Sistema de tiro com munição coletável aumentando a cada nível
 - 🎯 Inimigos podem ser eliminados com tiros (auto mira, tiro sempre vai pro inimigo)
 - 🎼 Efeitos sonoros opcionais
@@ -98,5 +100,5 @@ O jogo funciona melhor em:
 
 ---
 
-Desenvolvido com ❤️ usando HTML, CSS e JavaScript puro.
+Desenvolvido com ❤️ usando AI 🤖 Claude Sonnet 3.5, HTML, CSS e JavaScript.
 Totalmente gratuito e sem anúncios!
