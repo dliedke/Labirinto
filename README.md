@@ -2,7 +2,7 @@
 
 Um jogo de labirinto desafiador onde você precisa coletar tesouros enquanto foge e mata inimigos! Explore labirintos gerados proceduralmente, colete tesouros, encontre munição e elimine inimigos! Tente sobreviver o máximo possível.
 
-🎯 **Jogue agora (abre em nova aba)**: [https://labirinto.tiiny.site/](https://labirinto.tiiny.site/)
+🎮 **Jogue agora**: <a href="https://labirinto.tiiny.site/" target="_blank">https://labirinto.tiiny.site/</a>
 
 ## 🎯 Objetivo
 
