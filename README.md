@@ -21,7 +21,7 @@ Um jogo de labirinto desafiador onde você precisa coletar tesouros enquanto fog
 - Botão ⏸️ ou tecla "P" para pausar o jogo
 
 ### Mobile
-- <b>Faça um scrollzinho para baixo e para cima para remover a barra de endereço e evitar clicar na propaganda (titulo do jogo deve ficar no topo)</b>
+- **Faça um scrollzinho para baixo e para cima para remover a barra de endereço e evitar clicar na propaganda (titulo do jogo deve ficar no topo)**
 - Use os botões direcionais na tela
 - Mantenha pressionado um botão para mover mais rápido
 - Use o botão de tiro (⚪) para atirar
