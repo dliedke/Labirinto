@@ -309,6 +309,7 @@
     <div id="gameOver" class="game-over">
         <div class="bg-gray-800 p-8 rounded-lg text-white text-center">
             <h2 class="text-2xl mb-4">Game Over!</h2>
+            <p class="mb-4">Nível Alcançado: <span id="finalLevel">0</span></p>
             <p class="mb-4">Pontuação Final: <span id="finalScore">0</span></p>
             <p class="hidden md:block mb-4 text-gray-400">Pressione Enter para jogar novamente</p>
             <button onclick="startGame()" class="md:hidden bg-green-500 px-4 py-2 rounded hover:bg-green-600">
@@ -340,6 +341,189 @@
         let lastDirection = 'right'; // Direção inicial do jogador
         let bulletSpawnChance = 0.03;
         let isPaused = false;
+
+        // _________________________________________________________________
+        //
+        // Controle do som
+        // _________________________________________________________________
+
+        class AudioManager {
+            constructor() {
+                this.context = new (window.AudioContext || window.webkitAudioContext)();
+                this.sounds = {};
+                this.isMuted = false;
+                this.loadSounds();
+            }
+
+            async loadSounds() {
+                // Função auxiliar para tocar uma sequência de notas
+                const playSequence = (notes) => {
+                    notes.forEach((note, index) => {
+                        setTimeout(() => {
+                            const oscillator = this.context.createOscillator();
+                            const gainNode = this.context.createGain();
+                            
+                            oscillator.type = note.type || 'sine';
+                            oscillator.frequency.setValueAtTime(note.frequency, this.context.currentTime);
+                            
+                            gainNode.gain.setValueAtTime(note.gain || 0.2, this.context.currentTime);
+                            gainNode.gain.exponentialRampToValueAtTime(0.01, this.context.currentTime + note.duration);
+                            
+                            oscillator.connect(gainNode);
+                            gainNode.connect(this.context.destination);
+                            
+                            oscillator.start();
+                            oscillator.stop(this.context.currentTime + note.duration);
+                        }, index * 100); // 100ms entre cada nota
+                    });
+                };
+
+                // Função auxiliar para criar sons usando oscilador
+                const createOscillatorSound = (frequency, duration, type = 'sine') => {
+                    const oscillator = this.context.createOscillator();
+                    const gainNode = this.context.createGain();
+                    
+                    oscillator.type = type;
+                    oscillator.frequency.setValueAtTime(frequency, this.context.currentTime);
+                    
+                    gainNode.gain.setValueAtTime(0.2, this.context.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, this.context.currentTime + duration);
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.context.destination);
+                    
+                    return { oscillator, gainNode, duration };
+                };
+
+                // Som de tiro (som agudo curto)
+                this.sounds.shoot = () => {
+                    const sound = createOscillatorSound(880, 0.1, 'square');
+                    sound.oscillator.start();
+                    sound.oscillator.stop(this.context.currentTime + sound.duration);
+                };
+
+                // Som de coleta de tesouro (som ascendente)
+                this.sounds.collectTreasure = () => {
+                    const oscillator = this.context.createOscillator();
+                    const gainNode = this.context.createGain();
+                    
+                    oscillator.type = 'sine';
+                    oscillator.frequency.setValueAtTime(440, this.context.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(880, this.context.currentTime + 0.2);
+                    
+                    gainNode.gain.setValueAtTime(0.5, this.context.currentTime); // Aumentado de ~0.2 para 0.5
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, this.context.currentTime + 0.2);
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.context.destination);
+                    
+                    oscillator.start();
+                    oscillator.stop(this.context.currentTime + 0.2);
+                };
+
+                // Som de morte do inimigo (som descendente com ruído)
+                this.sounds.enemyDeath = () => {
+                    const oscillator = this.context.createOscillator();
+                    const gainNode = this.context.createGain();
+                    
+                    oscillator.type = 'sawtooth';
+                    oscillator.frequency.setValueAtTime(440, this.context.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(110, this.context.currentTime + 0.3);
+                    
+                    gainNode.gain.setValueAtTime(0.3, this.context.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, this.context.currentTime + 0.3);
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.context.destination);
+                    
+                    oscillator.start();
+                    oscillator.stop(this.context.currentTime + 0.3);
+                };
+
+                // Som de morte do jogador (som grave e longo)
+                this.sounds.playerDeath = () => {
+                    const oscillator = this.context.createOscillator();
+                    const gainNode = this.context.createGain();
+                    
+                    oscillator.type = 'sine';
+                    oscillator.frequency.setValueAtTime(440, this.context.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(55, this.context.currentTime + 0.5);
+                    
+                    gainNode.gain.setValueAtTime(0.7, this.context.currentTime); // Aumentado de 0.4 para 0.7
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, this.context.currentTime + 0.5);
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.context.destination);
+                    
+                    oscillator.start();
+                    oscillator.stop(this.context.currentTime + 0.5);
+                };
+
+                // Melodia de game over (sequência de notas tristes descendentes)
+                this.sounds.gameOver = () => {
+                    const baseFreq = 440; // Nota A4
+                    const notes = [
+                        { frequency: baseFreq, duration: 0.2, type: 'sine', gain: 0.5 },      // A4 (mais alto)
+                        { frequency: baseFreq * 0.75, duration: 0.2, type: 'sine', gain: 0.45 }, // F4
+                        { frequency: baseFreq * 0.5, duration: 0.4, type: 'sine', gain: 0.4 }, // A3
+                        { frequency: baseFreq * 0.25, duration: 0.6, type: 'sine', gain: 0.35 }  // A2 (ainda audível)
+                    ];
+                    playSequence(notes);
+                };
+
+                // Melodia de level up (sequência de notas alegres em arpejo)
+                this.sounds.levelUp = () => {
+                    const baseFreq = 440; // Nota A4
+                    const notes = [
+                        { frequency: baseFreq, duration: 0.15, type: 'sine', gain: 0.2 },       // A4
+                        { frequency: baseFreq * 1.25, duration: 0.15, type: 'sine', gain: 0.2 }, // C#5
+                        { frequency: baseFreq * 1.5, duration: 0.15, type: 'sine', gain: 0.2 },  // E5
+                        { frequency: baseFreq * 2, duration: 0.2, type: 'sine', gain: 0.25 },    // A5 (mais longa e um pouco mais alta)
+                    ];
+                    playSequence(notes);
+                };
+            }
+
+            play(soundName) {
+                if (this.isMuted || !this.sounds[soundName]) return;
+                
+                // Garante que o contexto está executando (necessário devido às políticas dos navegadores)
+                if (this.context.state === 'suspended') {
+                    this.context.resume();
+                }
+                
+                this.sounds[soundName]();
+            }
+
+            toggleMute() {
+                this.isMuted = !this.isMuted;
+                return this.isMuted;
+            }
+        }
+
+        // Cria uma instância global do gerenciador de áudio
+        const audioManager = new AudioManager();
+
+        // Adiciona botão de mute na interface
+        const addMuteButton = () => {
+            const controls = document.querySelector('.flex.justify-center.items-center.gap-4.mb-2');
+            const muteButton = document.createElement('button');
+            muteButton.className = 'bg-gray-800 hover:bg-gray-700 text-white font-bold p-0.5 rounded text-xs mt-1';
+            muteButton.innerHTML = '🔊';
+            muteButton.onclick = () => {
+                const isMuted = audioManager.toggleMute();
+                muteButton.innerHTML = isMuted ? '🔈' : '🔊';
+            };
+            controls.appendChild(muteButton);
+        };
+
+        // Chama a função para adicionar o botão quando a página carregar
+        window.addEventListener('load', addMuteButton);
+
+        // _________________________________________________________________
+        //
+        // Labirinto
+        // _________________________________________________________________
 
         function createMaze() {
             maze = Array(MAZE_SIZE).fill().map(() => Array(MAZE_SIZE).fill(1));
@@ -623,7 +807,11 @@
             if (hitEnemy) {
                 lives--;
                 updateLives();
-                
+
+                if (lives > 0) {
+                    audioManager.play('playerDeath'); // Adiciona som de morte do jogador
+                }
+
                 if (lives <= 0) {
                     gameOver();
                 } else {
@@ -643,9 +831,13 @@
             if (treasureIndex !== -1) {
                 treasures.splice(treasureIndex, 1);
                 score += 100 * level;
+                audioManager.play('collectTreasure'); // Adiciona som de coleta
                 
                 if (treasures.length === 0) {
-                    levelUp();
+                    // Adiciona um pequeno delay antes de chamar levelUp
+                    setTimeout(() => {
+                        levelUp();
+                    }, 300); // 300ms de delay
                 }
             }
 
@@ -662,6 +854,9 @@
             maze = createMaze();
             player = { x: 1, y: 1 };
             
+            // Toca a melodia de level up
+            audioManager.play('levelUp');
+
             // Adiciona inimigos em níveis específicos
             if (level === 5) { // segundo inimigo no nível 5
                 enemies.push(createEnemy());
@@ -683,11 +878,16 @@
         }
 
         function gameOver() {
+
+            // Toca a melodia de game over
+            audioManager.play('gameOver');
+
             stopContinuousMove();
             isGameOver = true;
             clearInterval(gameInterval);
             document.getElementById('gameOver').classList.add('active');
             document.getElementById('finalScore').textContent = score;
+            document.getElementById('finalLevel').textContent = level;
         }
 
         function startGame() {
@@ -695,7 +895,7 @@
             isGameOver = false;
             level = 1; // Para começar em nível diferente, altere aqui
             score = 0;
-            lives = 7;
+            lives = 3;
             bullets = 15; // Começa com algumas balas
             updateBulletsDisplay();
             maze = createMaze();
@@ -914,7 +1114,8 @@
             
             bullets--;
             updateBulletsDisplay();
-            
+            audioManager.play('shoot'); // Adiciona som de tiro
+
             const direction = getDirectionToEnemy(player.x, player.y, nearestEnemy);
             const shot = {
                 x: player.x,
@@ -976,7 +1177,8 @@
                 if (hitEnemy !== -1 && !enemies[hitEnemy].exploding) {
                     enemies[hitEnemy].exploding = true;
                     shots.splice(i, 1);
-                    
+                    audioManager.play('enemyDeath'); // Adiciona som de morte do inimigo
+
                     // Posição atual do inimigo atingido
                     const currentX = enemies[hitEnemy].x;
                     const currentY = enemies[hitEnemy].y;

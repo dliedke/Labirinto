@@ -38,6 +38,8 @@ Um jogo de labirinto desafiador onde você precisa coletar tesouros enquanto fog
 - 👾 Novo inimigo perseguidores implacáveis a cada 5 níveis até total de 4 inimigos
 - 🔫 Sistema de tiro com munição coletável aumentando a cada nível
 - 🎯 Inimigos podem ser eliminados com tiros (auto mira, tiro sempre vai pro inimigo)
+- 🎼 Efeitos sonoros opcionais
+- ⏸️ Controle de pausa
 - 📱 Suporte completo para desktop e mobile
 
 ## 🏆 Sistema de Pontuação
