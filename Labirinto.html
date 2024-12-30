@@ -854,25 +854,24 @@
             maze = createMaze();
             player = { x: 1, y: 1 };
             
-            // Toca a melodia de level up
             audioManager.play('levelUp');
-
+            
             // Adiciona inimigos em níveis específicos
-            if (level === 5) { // segundo inimigo no nível 5
-                enemies.push(createEnemy());
-            }
-            else if (level === 10) { // terceiro inimigo no nível 10
-                enemies.push(createEnemy());
-            }
-            else if (level === 15) { // quarto inimigo no nível 15 e para por aí
-                enemies.push(createEnemy());
-            }
+            if (level === 5) enemies.push(createEnemy());
+            else if (level === 10) enemies.push(createEnemy());
+            else if (level === 15) enemies.push(createEnemy());
             
             // Reposiciona todos os inimigos existentes
             enemies = enemies.map(() => createEnemy());
             
-            // Aumenta chance de balas conforme nível aumenta (começa em 3%, max 8%)
-            bulletSpawnChance = Math.min(0.03 + (level - 10) * 0.01, 0.08);
+            // Aumenta chance de balas conforme nível aumenta
+            bulletSpawnChance = Math.min(0.05 + (level * 0.01), 0.2); // Aumentado significativamente
+            
+            // Garante um número mínimo de balas ao iniciar o nível
+            const minBullets = 2 + Math.floor(level / 6); // Começa com 3 balas e aumenta a cada 5 níveis
+            for (let i = 0; i < minBullets; i++) {
+                generateNewBullet();
+            }
             
             placeTreasures();
         }
@@ -896,7 +895,7 @@
             level = 1; // Para começar em nível diferente, altere aqui
             score = 0;
             lives = 7;
-            bullets = 20; // Começa com algumas balas
+            bullets = 10; // Começa com algumas balas
             updateBulletsDisplay();
             maze = createMaze();
             player = { x: 1, y: 1 };
@@ -911,17 +910,19 @@
             
             moveCounter = 0;
             gameInterval = setInterval(() => {
-                moveCounter++;
-                if (moveCounter % 3 === 0) {
-                    enemies.forEach(moveEnemy);
-                }
-                updateShots();
-                checkCollision();
-                renderMaze();
-                
-                // Chance de gerar nova bala aumenta com o nível
-                if (Math.random() < bulletSpawnChance) {
-                    generateNewBullet();
+                if (!isPaused) {
+                    moveCounter++;
+                    if (moveCounter % 3 === 0) {
+                        enemies.forEach(moveEnemy);
+                    }
+                    updateShots();
+                    checkCollision();
+                    renderMaze();
+                    
+                    // Tenta gerar nova bala a cada tick do intervalo
+                    if (Math.random() < bulletSpawnChance) {
+                        generateNewBullet();
+                    }
                 }
             }, 200);
         }
@@ -931,21 +932,41 @@
         }
 
         function generateNewBullet() {
-            for (let i = 0; i < 20; i++) { // Mais tentativas para encontrar posição válida
-                const x = Math.floor(Math.random() * (MAZE_SIZE - 2)) + 1;
-                const y = Math.floor(Math.random() * (MAZE_SIZE - 2)) + 1;
-                
-                // Verifica se está longe de jogador e inimigos
-                const farFromPlayer = Math.abs(x - player.x) + Math.abs(y - player.y) > 3;
-                const farFromEnemies = !enemies.some(e => 
-                    Math.abs(e.x - x) < 3 && Math.abs(e.y - y) < 3
-                );
-                
-                if (maze[y][x] === 0 && farFromPlayer && farFromEnemies) {
-                    maze[y][x] = 2;
-                    return true;
+            // Conta quantas balas existem no mapa
+            let currentBullets = 0;
+            for (let y = 0; y < MAZE_SIZE; y++) {
+                for (let x = 0; x < MAZE_SIZE; x++) {
+                    if (maze[y][x] === 2) currentBullets++;
                 }
             }
+
+            // Se já tiver muitas balas, não gera mais
+            const maxBullets = 3 + Math.floor(level / 4); // Aumenta com o nível
+            if (currentBullets >= maxBullets) return false;
+
+            // Lista todas as posições válidas
+            const validPositions = [];
+            for (let y = 1; y < MAZE_SIZE - 1; y++) {
+                for (let x = 1; x < MAZE_SIZE - 1; x++) {
+                    // Verifica se é um caminho e está longe do jogador e inimigos
+                    const farFromPlayer = Math.abs(x - player.x) + Math.abs(y - player.y) > 3;
+                    const farFromEnemies = !enemies.some(e => 
+                        Math.abs(e.x - x) < 3 && Math.abs(e.y - y) < 3
+                    );
+                    
+                    if (maze[y][x] === 0 && farFromPlayer && farFromEnemies) {
+                        validPositions.push({x, y});
+                    }
+                }
+            }
+
+            // Se encontrou posições válidas, escolhe uma aleatoriamente
+            if (validPositions.length > 0) {
+                const pos = validPositions[Math.floor(Math.random() * validPositions.length)];
+                maze[pos.y][pos.x] = 2;
+                return true;
+            }
+
             return false;
         }
 
