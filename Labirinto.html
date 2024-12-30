@@ -218,6 +218,17 @@
             z-index: 10;
         }
 
+        .heart {
+            color: #f56565;
+            font-size: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+            animation: pulse 2s infinite;
+        }
+
         @keyframes explode {
             0% { 
                 transform: scale(1); 
@@ -341,6 +352,7 @@
         let lastDirection = 'right'; // Direção inicial do jogador
         let bulletSpawnChance = 0.03;
         let isPaused = false;
+        let heartSpawnChance = 0.003; // 0,3% de chance de gerar coração
 
         // _________________________________________________________________
         //
@@ -598,30 +610,6 @@
             return maze;
         }
 
-        function createEnemy(x, y) {
-            if (!x || !y) {
-                // Tenta 20 vezes encontrar uma posição válida
-                for (let i = 0; i < 20; i++) {
-                    x = Math.floor(Math.random() * (MAZE_SIZE - 4)) + 2;
-                    y = Math.floor(Math.random() * (MAZE_SIZE - 4)) + 2;
-                    
-                    // Verifica se a posição é válida, longe de outros inimigos e do jogador
-                    const distanceFromPlayer = Math.abs(player.x - x) + Math.abs(player.y - y);
-                    if (maze[y][x] === 0 && 
-                        !enemies.some(e => Math.abs(e.x - x) < 4 && Math.abs(e.y - y) < 4) &&
-                        distanceFromPlayer > 8) {
-                        break;
-                    }
-                }
-                // Se não encontrar posição ideal, coloca no canto oposto ao jogador
-                if (maze[y][x] !== 0 || (Math.abs(player.x - x) + Math.abs(player.y - y)) <= 8) {
-                    x = MAZE_SIZE - 2;
-                    y = MAZE_SIZE - 2;
-                }
-            }
-            return { x, y };
-        }
-
         function placeTreasures() {
 
             // Aumenta número de tesouros após nível 15
@@ -646,7 +634,7 @@
 
         function updateLives() {
             const livesContainer = document.getElementById('lives');
-            const heartsHtml = Array(7).fill(0).map((_, i) => 
+            const heartsHtml = Array(5).fill(0).map((_, i) => 
                 i < lives ? '❤️' : '<span style="opacity: 0.3">❤️</span>'
             ).join('');
             livesContainer.innerHTML = heartsHtml;
@@ -697,6 +685,14 @@
                         const bullet = document.createElement('div');
                         bullet.className = 'bullet';
                         cell.appendChild(bullet);
+                    }
+
+                    // Adicione renderização de corações
+                    if (maze[y][x] === 3) { // 3 representa um coração
+                        const heart = document.createElement('div');
+                        heart.className = 'heart';
+                        heart.innerHTML = '❤️';
+                        cell.appendChild(heart);
                     }
                     
                     row.appendChild(cell);
@@ -757,6 +753,144 @@
             return null;
         }
 
+        function initializeEnemies(numEnemies) {
+            let enemies = [];
+            
+            // Define regiões do mapa para distribuir os inimigos
+            const regions = [
+                { x: MAZE_SIZE - 2, y: MAZE_SIZE - 2 },     // Canto inferior direito
+                { x: MAZE_SIZE - 2, y: 1 },                 // Canto superior direito
+                { x: 1, y: MAZE_SIZE - 2 },                 // Canto inferior esquerdo
+                { x: Math.floor(MAZE_SIZE/2), y: MAZE_SIZE - 2 },  // Centro inferior
+                { x: MAZE_SIZE - 2, y: Math.floor(MAZE_SIZE/2) },  // Centro direito
+                { x: 1, y: Math.floor(MAZE_SIZE/2) },             // Centro esquerdo
+                { x: Math.floor(MAZE_SIZE/2), y: 1 }              // Centro superior
+            ];
+            
+            // Limita o número de inimigos ao número de regiões disponíveis
+            const actualNumEnemies = Math.min(numEnemies, regions.length);
+            
+            // Embaralha as regiões para variar as posições iniciais
+            const shuffledRegions = [...regions];
+            for (let i = shuffledRegions.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffledRegions[i], shuffledRegions[j]] = [shuffledRegions[j], shuffledRegions[i]];
+            }
+            
+            // Para cada inimigo, usa uma região diferente
+            for (let i = 0; i < actualNumEnemies; i++) {
+                const basePosition = shuffledRegions[i];
+                
+                // Tenta encontrar uma posição válida próxima à região base
+                let enemy = null;
+                let attempts = 0;
+                let maxRadius = 1; // Começa com raio pequeno
+                
+                while (!enemy && attempts < 20) {
+                    // Aumenta o raio de busca a cada 5 tentativas
+                    if (attempts % 5 === 0) {
+                        maxRadius = Math.min(maxRadius + 1, 3);
+                    }
+                    
+                    // Adiciona uma variação baseada no raio atual
+                    const testX = basePosition.x + (Math.floor(Math.random() * (maxRadius * 2 + 1)) - maxRadius);
+                    const testY = basePosition.y + (Math.floor(Math.random() * (maxRadius * 2 + 1)) - maxRadius);
+                    
+                    // Garante que a posição está dentro dos limites do labirinto
+                    if (testX <= 0 || testX >= MAZE_SIZE - 1 || testY <= 0 || testY >= MAZE_SIZE - 1) {
+                        attempts++;
+                        continue;
+                    }
+                    
+                    // Verifica se a posição é válida
+                    if (maze[testY][testX] === 0 && 
+                        !enemies.some(e => Math.abs(e.x - testX) < 3 && Math.abs(e.y - testY) < 3) &&
+                        (Math.abs(player.x - testX) + Math.abs(player.y - testY)) > 6) { // Distância mínima do jogador
+                        enemy = { x: testX, y: testY };
+                    }
+                    
+                    attempts++;
+                }
+                
+                // Se não encontrou posição com variação, usa a posição base com verificação adicional
+                if (!enemy) {
+                    // Verifica se a posição base é válida
+                    if (maze[basePosition.y][basePosition.x] === 0 &&
+                        !enemies.some(e => Math.abs(e.x - basePosition.x) < 2 && Math.abs(e.y - basePosition.y) < 2)) {
+                        enemy = { x: basePosition.x, y: basePosition.y };
+                    } else {
+                        // Última tentativa: procura qualquer posição válida longe do jogador
+                        for (let y = 1; y < MAZE_SIZE - 1; y++) {
+                            for (let x = 1; x < MAZE_SIZE - 1; x++) {
+                                if (maze[y][x] === 0 &&
+                                    !enemies.some(e => Math.abs(e.x - x) < 2 && Math.abs(e.y - y) < 2) &&
+                                    (Math.abs(player.x - x) + Math.abs(player.y - y)) > 6) {
+                                    enemy = { x, y };
+                                    break;
+                                }
+                            }
+                            if (enemy) break;
+                        }
+                    }
+                }
+                
+                // Se ainda não encontrou posição, usa a base com offset mínimo
+                if (!enemy) {
+                    enemy = { 
+                        x: Math.max(1, Math.min(MAZE_SIZE - 2, basePosition.x + (i % 2))),
+                        y: Math.max(1, Math.min(MAZE_SIZE - 2, basePosition.y + (i % 2)))
+                    };
+                }
+                
+                enemies.push(enemy);
+            }
+            
+            return enemies;
+        }
+
+        // Nova função para reposicionar um único inimigo
+        function repositionEnemy(currentEnemy) {
+            // Encontra todas as posições válidas e suas distâncias do jogador
+            let bestPosition = null;
+            let maxDistance = -1;
+            
+            for (let testY = 1; testY < MAZE_SIZE - 1; testY++) {
+                for (let testX = 1; testX < MAZE_SIZE - 1; testX++) {
+                    // Verifica se é uma posição válida
+                    if (maze[testY][testX] !== 0) continue;
+                    
+                    // Verifica se está ocupado por outro inimigo
+                    if (enemies.some(e => 
+                        e !== currentEnemy && // Não é o próprio inimigo
+                        ((e.x === testX && e.y === testY) || // Exatamente mesma posição
+                        (Math.abs(e.x - testX) < 2 && Math.abs(e.y - testY) < 2)) // Células adjacentes
+                    )) continue;
+                    
+                    // Calcula distância Manhattan do jogador
+                    const distance = Math.abs(player.x - testX) + Math.abs(player.y - testY);
+                    
+                    // Atualiza melhor posição se encontrar uma distância maior
+                    if (distance > maxDistance) {
+                        maxDistance = distance;
+                        bestPosition = { x: testX, y: testY };
+                    }
+                }
+            }
+            
+            // Se encontrou uma posição válida, usa ela
+            if (bestPosition) {
+                return bestPosition;
+            }
+            
+            // Fallback para o canto mais distante do jogador com pequena variação
+            const offsetX = Math.floor(Math.random() * 3) - 1;
+            const offsetY = Math.floor(Math.random() * 3) - 1;
+            return {
+                x: Math.max(1, Math.min(MAZE_SIZE - 2, ((player.x < MAZE_SIZE/2) ? MAZE_SIZE - 2 : 1) + offsetX)),
+                y: Math.max(1, Math.min(MAZE_SIZE - 2, ((player.y < MAZE_SIZE/2) ? MAZE_SIZE - 2 : 1) + offsetY))
+            };
+        }
+
         function moveEnemy(enemy) {
             if (enemy.exploding) return;
             
@@ -764,12 +898,24 @@
             const nextMove = findPathToPlayer(enemy);
             
             if (nextMove) {
-                enemy.x = nextMove.x;
-                enemy.y = nextMove.y;
-                return;
+                // Verifica se há outro inimigo na posição pretendida
+                const hasEnemyAtNextPosition = enemies.some(e => 
+                    e !== enemy && // Não é o próprio inimigo
+                    e.x === nextMove.x && 
+                    e.y === nextMove.y && 
+                    !e.exploding // O outro inimigo não está explodindo
+                );
+                
+                // Só move se não houver outro inimigo na posição
+                if (!hasEnemyAtNextPosition) {
+                    enemy.x = nextMove.x;
+                    enemy.y = nextMove.y;
+                    return;
+                }
             }
             
-            // Se não encontrar caminho, usa o movimento antigo como fallback
+            // Se não encontrar caminho ou houver inimigo no caminho,
+            // tenta movimento alternativo
             const dx = player.x - enemy.x;
             const dy = player.y - enemy.y;
             
@@ -782,20 +928,48 @@
                 moveY = dy > 0 ? 1 : -1;
             }
             
-            if (maze[enemy.y + moveY][enemy.x + moveX] === 0) {
+            // Verifica se há inimigo na posição pretendida
+            const willCollide = enemies.some(e => 
+                e !== enemy && 
+                e.x === enemy.x + moveX && 
+                e.y === enemy.y + moveY &&
+                !e.exploding
+            );
+            
+            if (!willCollide && maze[enemy.y + moveY][enemy.x + moveX] === 0) {
                 enemy.x += moveX;
                 enemy.y += moveY;
-            } 
-            else if (moveX !== 0 && maze[enemy.y][enemy.x + moveX] === 0) {
+            } else if (moveX !== 0 && !enemies.some(e => 
+                e !== enemy && 
+                e.x === enemy.x + moveX && 
+                e.y === enemy.y &&
+                !e.exploding
+            ) && maze[enemy.y][enemy.x + moveX] === 0) {
                 enemy.x += moveX;
-            } 
-            else if (moveY !== 0 && maze[enemy.y + moveY][enemy.x] === 0) {
+            } else if (moveY !== 0 && !enemies.some(e => 
+                e !== enemy && 
+                e.x === enemy.x && 
+                e.y === enemy.y + moveY &&
+                !e.exploding
+            ) && maze[enemy.y + moveY][enemy.x] === 0) {
                 enemy.y += moveY;
             }
+            // Se todas as direções estiverem bloqueadas, o inimigo fica parado
         }
 
         function checkCollision() {
             if (isGameOver) return;
+
+            // Verifica coleta de coração
+            if (maze[player.y][player.x] === 3) {
+                maze[player.y][player.x] = 0;
+                if (lives < 5) {
+                    lives++;
+                    updateLives();
+                    audioManager.play('collectTreasure'); // Usa o mesmo som da coleta de tesouro
+                }
+                return;
+            }
 
             // Verifica colisão com inimigos
             const hitEnemy = enemies.find(enemy => 
@@ -815,13 +989,12 @@
                 if (lives <= 0) {
                     gameOver();
                 } else {
-                    // Reposiciona o jogador e inimigos
+
+                    // Reposiciona o jogador
                     player = { x: 1, y: 1 };
-                    enemies.forEach(enemy => {
-                        const newPos = createEnemy();
-                        enemy.x = newPos.x;
-                        enemy.y = newPos.y;
-                    });
+
+                    // Reposiciona todos os inimigos
+                    enemies = initializeEnemies(enemies.length); 
                 }
                 return;
             }
@@ -856,19 +1029,22 @@
             
             audioManager.play('levelUp');
             
-            // Adiciona inimigos em níveis específicos
-            if (level === 5) enemies.push(createEnemy());
-            else if (level === 10) enemies.push(createEnemy());
-            else if (level === 15) enemies.push(createEnemy());
+            // Calcula número de inimigos baseado no nível até 6
+            let numEnemies = Math.min(1 + Math.floor((level - 1) / 3), 6);
             
-            // Reposiciona todos os inimigos existentes
-            enemies = enemies.map(() => createEnemy());
+            // Depois de chegar em 6 inimigos (level 18), mostra aleatorio entre 1 e 6
+            if (level > 18) {
+                numEnemies = Math.floor(Math.random() * 6) + 1;
+            }    
+             
+            // Usa a nova função para inicializar inimigos
+            enemies = initializeEnemies(numEnemies);
             
-            // Aumenta chance de balas conforme nível aumenta
-            bulletSpawnChance = Math.min(0.05 + (level * 0.01), 0.2); // Aumentado significativamente
+            // Calcula probabilidade de spawn de balas
+            bulletSpawnChance = Math.min(0.05 + (level * 0.02), 0.3);
             
-            // Garante um número mínimo de balas ao iniciar o nível
-            const minBullets = 2 + Math.floor(level / 6); // Começa com 3 balas e aumenta a cada 5 níveis
+            // Adiciona balas baseado no nível
+            const minBullets = 2 + Math.floor(level / 3);
             for (let i = 0; i < minBullets; i++) {
                 generateNewBullet();
             }
@@ -892,14 +1068,14 @@
         function startGame() {
             stopContinuousMove();
             isGameOver = false;
-            level = 1; // Para começar em nível diferente, altere aqui
+            level = 1;
             score = 0;
-            lives = 7;
-            bullets = 10; // Começa com algumas balas
+            lives = 1;
+            bullets = 50;
             updateBulletsDisplay();
             maze = createMaze();
             player = { x: 1, y: 1 };
-            enemies = [createEnemy()];
+            enemies = initializeEnemies(1);
             placeTreasures();
             document.getElementById('gameOver').classList.remove('active');
             updateLives();
@@ -908,20 +1084,34 @@
                 clearInterval(gameInterval);
             }
             
+            let moveAccumulator = 0;
             moveCounter = 0;
+            
             gameInterval = setInterval(() => {
                 if (!isPaused) {
                     moveCounter++;
-                    if (moveCounter % 3 === 0) {
+                    moveAccumulator += 1;
+
+                    // Velocidade base começa em 4.0 (bem controlável)
+                    // A cada 3 níveis, diminui 0.4 (fica mais rápido)
+                    let enemySpeed = Math.max(4.0 - (Math.floor((level - 1) / 4) * 0.4), 0.23);
+                    
+                    if (moveAccumulator >= enemySpeed) {
                         enemies.forEach(moveEnemy);
+                        moveAccumulator = 0;
                     }
+
                     updateShots();
                     checkCollision();
                     renderMaze();
                     
-                    // Tenta gerar nova bala a cada tick do intervalo
                     if (Math.random() < bulletSpawnChance) {
                         generateNewBullet();
+                    }
+
+                    // Chance de gerar coração quando player está com 1 ou 2 vidas
+                    if (lives <= 2 && Math.random() < heartSpawnChance) {
+                        generateHeart();
                     }
                 }
             }, 200);
@@ -941,7 +1131,7 @@
             }
 
             // Se já tiver muitas balas, não gera mais
-            const maxBullets = 3 + Math.floor(level / 4); // Aumenta com o nível
+            const maxBullets = 3 + Math.floor(level / 3); // Aumenta com o nível
             if (currentBullets >= maxBullets) return false;
 
             // Lista todas as posições válidas
@@ -981,8 +1171,10 @@
             else if (direction === 'left') newPlayer.x--;
             else if (direction === 'right') newPlayer.x++;
             
-            // Modifique esta linha para permitir movimento sobre balas (valor 2)
-            if (maze[newPlayer.y][newPlayer.x] === 0 || maze[newPlayer.y][newPlayer.x] === 2) {
+            // Modifique esta linha para permitir movimento sobre balas e corações
+            if (maze[newPlayer.y][newPlayer.x] === 0 || 
+                maze[newPlayer.y][newPlayer.x] === 2 || 
+                maze[newPlayer.y][newPlayer.x] === 3) {
                 player = newPlayer;
                 checkCollision();
                 renderMaze();
@@ -1098,70 +1290,77 @@
         }
 
         function findNearestEnemy(fromX, fromY) {
-            let nearestEnemy = null;
-            let shortestDistance = Infinity;
+            // Filtra inimigos que não estão explodindo e ordena por distância
+            const validEnemies = enemies
+                .filter(enemy => !enemy.exploding)
+                .map(enemy => ({
+                    enemy,
+                    distance: Math.abs(fromX - enemy.x) + Math.abs(fromY - enemy.y)
+                }))
+                .sort((a, b) => a.distance - b.distance);
             
-            enemies.forEach(enemy => {
-                if (enemy.exploding) return;
-                
-                const distance = Math.abs(fromX - enemy.x) + Math.abs(fromY - enemy.y);
-                if (distance < shortestDistance) {
-                    shortestDistance = distance;
-                    nearestEnemy = enemy;
-                }
-            });
-            
-            return nearestEnemy;
+            return validEnemies.length > 0 ? validEnemies[0].enemy : null;
         }
 
         function getDirectionToEnemy(fromX, fromY, enemy) {
             const dx = enemy.x - fromX;
             const dy = enemy.y - fromY;
             
-            // Determina a direção predominante
+            // Tenta primeiro a direção com maior distância (mais provável de ter caminho)
             if (Math.abs(dx) > Math.abs(dy)) {
-                return dx > 0 ? 'right' : 'left';
+                // Tenta horizontalmente primeiro
+                const dirX = dx > 0 ? 'right' : 'left';
+                // Verifica se há parede imediata na direção horizontal
+                if (dx > 0 && maze[fromY][fromX + 1] !== 1 || 
+                    dx < 0 && maze[fromY][fromX - 1] !== 1) {
+                    return dirX;
+                }
+                // Se há parede, tenta verticalmente
+                const dirY = dy > 0 ? 'down' : 'up';
+                if (dy > 0 && maze[fromY + 1][fromX] !== 1 || 
+                    dy < 0 && maze[fromY - 1][fromX] !== 1) {
+                    return dirY;
+                }
             } else {
-                return dy > 0 ? 'down' : 'up';
+                // Tenta verticalmente primeiro
+                const dirY = dy > 0 ? 'down' : 'up';
+                // Verifica se há parede imediata na direção vertical
+                if (dy > 0 && maze[fromY + 1][fromX] !== 1 || 
+                    dy < 0 && maze[fromY - 1][fromX] !== 1) {
+                    return dirY;
+                }
+                // Se há parede, tenta horizontalmente
+                const dirX = dx > 0 ? 'right' : 'left';
+                if (dx > 0 && maze[fromY][fromX + 1] !== 1 || 
+                    dx < 0 && maze[fromY][fromX - 1] !== 1) {
+                    return dirX;
+                }
             }
+            
+            // Se não encontrou direção sem parede, retorna null
+            return null;
         }
 
         function shoot() {
-
             if (bullets <= 0 || isPaused) return;
             
             const nearestEnemy = findNearestEnemy(player.x, player.y);
             if (!nearestEnemy) return; // Não atira se não houver inimigos vivos
             
+            const direction = getDirectionToEnemy(player.x, player.y, nearestEnemy);
+            if (!direction) return; // Não atira se não houver direção válida
+            
             bullets--;
             updateBulletsDisplay();
-            audioManager.play('shoot'); // Adiciona som de tiro
+            audioManager.play('shoot');
 
-            const direction = getDirectionToEnemy(player.x, player.y, nearestEnemy);
             const shot = {
                 x: player.x,
                 y: player.y,
                 direction: direction
             };
             
-            // Verifica se o primeiro movimento é válido
-            let nextX = shot.x;
-            let nextY = shot.y;
-            
-            switch(direction) {
-                case 'up': nextY--; break;
-                case 'down': nextY++; break;
-                case 'left': nextX--; break;
-                case 'right': nextX++; break;
-            }
-            
-            if (maze[nextY][nextX] !== 1) {
-                shots.push(shot);
-            } else {
-                // Devolve a bala se não puder atirar
-                bullets++;
-                updateBulletsDisplay();
-            }
+            shots.push(shot);
         }
 
         function updateShots() {
@@ -1207,7 +1406,7 @@
                     setTimeout(() => {
                         if (enemies[hitEnemy]) {
                             enemies[hitEnemy].exploding = false;
-                            const newPos = createEnemy();
+                            const newPos = repositionEnemy(enemies[hitEnemy]);
                             enemies[hitEnemy].x = newPos.x;
                             enemies[hitEnemy].y = newPos.y;
                         }
@@ -1250,6 +1449,37 @@
                     }
                 }, 200);
             }
+        }
+
+        function generateHeart() {
+
+            // Só gera coração se o jogador estiver com 1 ou 2 vidas
+            if (lives > 2) return false;
+
+            // Lista todas as posições válidas
+            const validPositions = [];
+            for (let y = 1; y < MAZE_SIZE - 1; y++) {
+                for (let x = 1; x < MAZE_SIZE - 1; x++) {
+                    // Verifica se é um caminho e está longe do jogador e inimigos
+                    const farFromPlayer = Math.abs(x - player.x) + Math.abs(y - player.y) > 3;
+                    const farFromEnemies = !enemies.some(e => 
+                        Math.abs(e.x - x) < 3 && Math.abs(e.y - y) < 3
+                    );
+                    
+                    if (maze[y][x] === 0 && farFromPlayer && farFromEnemies) {
+                        validPositions.push({x, y});
+                    }
+                }
+            }
+
+            // Se encontrou posições válidas, escolhe uma aleatoriamente
+            if (validPositions.length > 0) {
+                const pos = validPositions[Math.floor(Math.random() * validPositions.length)];
+                maze[pos.y][pos.x] = 3; // 3 representa um coração
+                return true;
+            }
+
+            return false;
         }
 
         // Atualiza os event listeners dos botões

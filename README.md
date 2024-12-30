@@ -1,6 +1,6 @@
 # 🎮 Labirinto dos Tesouros
 
-Um jogo de labirinto desafiador onde você precisa coletar tesouros enquanto foge e mata inimigos! Explore labirintos gerados proceduralmente, colete tesouros, encontre munição e elimine inimigos! Tente sobreviver o máximo possível.
+Um jogo de labirinto desafiador onde você precisa coletar tesouros enquanto foge e mata inimigos! Explore labirintos gerados proceduralmente, colete tesouros, encontre munição, recupere vida e elimine inimigos! Tente sobreviver o máximo possível.
 
 🎮 **Jogue agora**: <a href="https://labirinto.tiiny.site/" target="_blank">https://labirinto.tiiny.site/</a>
 
@@ -9,6 +9,7 @@ Um jogo de labirinto desafiador onde você precisa coletar tesouros enquanto fog
 - Colete todos os tesouros dourados (✨) em cada nível
 - Evite ou elimine os inimigos vermelhos (🔴)
 - Colete munição branca (⚪) para atirar nos inimigos
+- Colete coração (❤️) quando tiver com pouca vida (1 ou 2) para recuperar vidas
 - Sobreviva o máximo possível e faça a maior pontuação antingindo maior nível!
 
 ## 🎮 Controles
@@ -36,8 +37,8 @@ Um jogo de labirinto desafiador onde você precisa coletar tesouros enquanto fog
 - 🗺️ Labirintos gerados aleatoriamente
 - 🔄 Dificuldade progressiva
 - ⚡ Movimento acelerado ao manter botão/tecla pressionado
-- 💖 7 vidas
-- 👾 Novos inimigos perseguidores implacáveis a cada 5 níveis até total de 4 inimigos
+- 💖 5 vidas
+- 👾 Novos inimigos perseguidores implacáveis a cada 3 níveis até total de 6 inimigos
 - 🔫 Sistema de tiro com munição coletável aumentando a cada nível
 - 🎯 Inimigos podem ser eliminados com tiros (auto mira, tiro sempre vai pro inimigo)
 - 🎼 Efeitos sonoros opcionais
@@ -62,9 +63,11 @@ Um jogo de labirinto desafiador onde você precisa coletar tesouros enquanto fog
 ## 🎯 Progressão
 
 1. Cada nível tem mais tesouros para coletar
-2. A cada 5 níveis, um novo inimigo é adicionado até máximo de 4
-3. Inimigos usam inteligência artificial para encontrar o melhor caminho até você
-4. A pontuação aumenta proporcionalmente ao nível
+2. A cada 3 níveis, um novo inimigo é adicionado até máximo de 5
+3. Depois do nível 18 é aletório entre 1 a 6 inimigos
+4. Os inimigos ficam mais rápido devagarinho
+5. Inimigos usam inteligência artificial para encontrar o melhor caminho até você
+6. A pontuação aumenta proporcionalmente ao nível
 
 ## 🔧 Suporte
 
@@ -78,7 +81,9 @@ O jogo funciona melhor em:
 - 🔴 Inimigos vermelhos com animação
 - ✨ Tesouros dourados brilhantes
 - ⚪ Munição coletável branca
+- ❤️ Coração para recuperar vida coletável
 - 💥 Efeitos de explosão ao eliminar inimigos
+- 🔈 Som ao atirar, matar inimigo, passar de fase, coleta de item e morte do jogador
 - 🌑 Tema escuro elegante
 - 💖 Sistema de vidas com corações
 
