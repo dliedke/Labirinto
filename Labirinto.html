@@ -352,7 +352,7 @@
         let lastDirection = 'right'; // Direção inicial do jogador
         let bulletSpawnChance = 0.03;
         let isPaused = false;
-        let heartSpawnChance = 0.003; // 0,3% de chance de gerar coração
+        let heartSpawnChance = 0.006; // 0,6% de chance de gerar coração
 
         // _________________________________________________________________
         //
@@ -1070,7 +1070,7 @@
             isGameOver = false;
             level = 1;
             score = 0;
-            lives = 1;
+            lives = 5;
             bullets = 50;
             updateBulletsDisplay();
             maze = createMaze();
