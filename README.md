@@ -63,8 +63,8 @@ Um jogo de labirinto desafiador onde você precisa coletar tesouros enquanto fog
 ## 🎯 Progressão
 
 1. Cada nível tem mais tesouros para coletar
-2. A cada 3 níveis, um novo inimigo é adicionado até máximo de 5
-3. Depois do nível 18 é aletório entre 1 a 6 inimigos
+2. A cada 3 níveis, um novo inimigo é adicionado até máximo de 6
+3. Depois do nível 18 é aletório entre 1 a 4 inimigos
 4. Os inimigos ficam mais rápido devagarinho
 5. Inimigos usam inteligência artificial para encontrar o melhor caminho até você
 6. A pontuação aumenta proporcionalmente ao nível

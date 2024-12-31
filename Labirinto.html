@@ -350,9 +350,9 @@
         let bullets = 0;
         let shots = [];
         let lastDirection = 'right'; // Direção inicial do jogador
-        let bulletSpawnChance = 0.03;
+        let bulletSpawnChance = 0.025;
         let isPaused = false;
-        let heartSpawnChance = 0.006; // 0,6% de chance de gerar coração
+        let heartSpawnChance = 0.009; // 0,9% de chance de gerar coração
 
         // _________________________________________________________________
         //
@@ -706,53 +706,6 @@
             updateLives();
         }
 
-        function findPathToPlayer(enemy) {
-            const queue = [{x: enemy.x, y: enemy.y, path: []}];
-            const visited = new Set();
-            
-            // Função auxiliar para gerar chave única para cada posição
-            const posKey = (x, y) => `${x},${y}`;
-            visited.add(posKey(enemy.x, enemy.y));
-            
-            while (queue.length > 0) {
-                const current = queue.shift();
-                
-                // Se encontrou o jogador, retorna o primeiro movimento do caminho
-                if (current.x === player.x && current.y === player.y) {
-                    if (current.path.length > 0) {
-                        return current.path[0];
-                    }
-                    return null;
-                }
-                
-                // Verifica todas as direções possíveis
-                const directions = [
-                    {dx: 0, dy: -1}, // cima
-                    {dx: 1, dy: 0},  // direita
-                    {dx: 0, dy: 1},  // baixo
-                    {dx: -1, dy: 0}  // esquerda
-                ];
-                
-                for (const dir of directions) {
-                    const nextX = current.x + dir.dx;
-                    const nextY = current.y + dir.dy;
-                    const key = posKey(nextX, nextY);
-                    
-                    if (nextX >= 0 && nextX < MAZE_SIZE && 
-                        nextY >= 0 && nextY < MAZE_SIZE && 
-                        maze[nextY][nextX] === 0 && 
-                        !visited.has(key)) {
-                        
-                        visited.add(key);
-                        const newPath = [...current.path, {x: nextX, y: nextY}];
-                        queue.push({x: nextX, y: nextY, path: newPath});
-                    }
-                }
-            }
-            
-            return null;
-        }
-
         function initializeEnemies(numEnemies) {
             let enemies = [];
             
@@ -891,71 +844,65 @@
             };
         }
 
-        function moveEnemy(enemy) {
-            if (enemy.exploding) return;
+        // Função auxiliar para verificar se uma posição é caminho válido para inimigos
+        function isValidPath(x, y) {
+            // Considera como caminho válido:
+            // - Caminhos normais (0)
+            // - Células com balas (2)
+            // - Células com corações (3)
+            return maze[y][x] === 0 || maze[y][x] === 2 || maze[y][x] === 3;
+        }
+
+        // Encontra o menor caminho até o player usando BFS
+        function findPathToPlayer(enemy) {
+            const queue = [{x: enemy.x, y: enemy.y, path: []}];
+            const visited = new Set([`${enemy.x},${enemy.y}`]);
             
-            // Encontra o próximo movimento no melhor caminho
-            const nextMove = findPathToPlayer(enemy);
+            // Direções possíveis: cima, direita, baixo, esquerda
+            const directions = [{dx: 0, dy: -1}, {dx: 1, dy: 0}, {dx: 0, dy: 1}, {dx: -1, dy: 0}];
             
-            if (nextMove) {
-                // Verifica se há outro inimigo na posição pretendida
-                const hasEnemyAtNextPosition = enemies.some(e => 
-                    e !== enemy && // Não é o próprio inimigo
-                    e.x === nextMove.x && 
-                    e.y === nextMove.y && 
-                    !e.exploding // O outro inimigo não está explodindo
-                );
+            while (queue.length > 0) {
+                const current = queue.shift();
                 
-                // Só move se não houver outro inimigo na posição
-                if (!hasEnemyAtNextPosition) {
-                    enemy.x = nextMove.x;
-                    enemy.y = nextMove.y;
-                    return;
+                // Encontrou o player
+                if (current.x === player.x && current.y === player.y) {
+                    return current.path[0] || current; // Retorna primeiro passo ou posição atual
+                }
+                
+                // Tenta todas as direções
+                for (const {dx, dy} of directions) {
+                    const nextX = current.x + dx;
+                    const nextY = current.y + dy;
+                    const key = `${nextX},${nextY}`;
+                    
+                    // Verifica se movimento é válido
+                    if (nextX >= 0 && nextX < MAZE_SIZE && 
+                        nextY >= 0 && nextY < MAZE_SIZE && 
+                        isValidPath(nextX, nextY) && 
+                        !visited.has(key) &&
+                        !enemies.some(e => e !== enemy && e.x === nextX && e.y === nextY)) {
+                        
+                        visited.add(key);
+                        const newPath = [...current.path, {x: nextX, y: nextY}];
+                        queue.push({x: nextX, y: nextY, path: newPath});
+                    }
                 }
             }
             
-            // Se não encontrar caminho ou houver inimigo no caminho,
-            // tenta movimento alternativo
-            const dx = player.x - enemy.x;
-            const dy = player.y - enemy.y;
-            
-            let moveX = 0;
-            let moveY = 0;
-            
-            if (Math.abs(dx) > Math.abs(dy)) {
-                moveX = dx > 0 ? 1 : -1;
-            } else {
-                moveY = dy > 0 ? 1 : -1;
-            }
-            
-            // Verifica se há inimigo na posição pretendida
-            const willCollide = enemies.some(e => 
-                e !== enemy && 
-                e.x === enemy.x + moveX && 
-                e.y === enemy.y + moveY &&
-                !e.exploding
-            );
-            
-            if (!willCollide && maze[enemy.y + moveY][enemy.x + moveX] === 0) {
-                enemy.x += moveX;
-                enemy.y += moveY;
-            } else if (moveX !== 0 && !enemies.some(e => 
-                e !== enemy && 
-                e.x === enemy.x + moveX && 
-                e.y === enemy.y &&
-                !e.exploding
-            ) && maze[enemy.y][enemy.x + moveX] === 0) {
-                enemy.x += moveX;
-            } else if (moveY !== 0 && !enemies.some(e => 
-                e !== enemy && 
-                e.x === enemy.x && 
-                e.y === enemy.y + moveY &&
-                !e.exploding
-            ) && maze[enemy.y + moveY][enemy.x] === 0) {
-                enemy.y += moveY;
-            }
-            // Se todas as direções estiverem bloqueadas, o inimigo fica parado
+            return null; // Não encontrou caminho
         }
+
+        // Move o inimigo em direção ao player
+        function moveEnemy(enemy) {
+            if (enemy.exploding) return;
+            
+            const nextMove = findPathToPlayer(enemy);
+            if (!nextMove) return; // Se não há caminho, não move
+            
+            // Move para a próxima posição do caminho
+            enemy.x = nextMove.x;
+            enemy.y = nextMove.y;
+        }         
 
         function checkCollision() {
             if (isGameOver) return;
@@ -1032,9 +979,9 @@
             // Calcula número de inimigos baseado no nível até 6
             let numEnemies = Math.min(1 + Math.floor((level - 1) / 3), 6);
             
-            // Depois de chegar em 6 inimigos (level 18), mostra aleatorio entre 1 e 6
+            // Depois de chegar em 6 inimigos (level >18), mostra aleatorio entre 1 e 4
             if (level > 18) {
-                numEnemies = Math.floor(Math.random() * 6) + 1;
+                numEnemies = Math.floor(Math.random() * 4) + 1;
             }    
              
             // Usa a nova função para inicializar inimigos
@@ -1071,7 +1018,7 @@
             level = 1;
             score = 0;
             lives = 5;
-            bullets = 50;
+            bullets = 30;
             updateBulletsDisplay();
             maze = createMaze();
             player = { x: 1, y: 1 };
@@ -1084,21 +1031,34 @@
                 clearInterval(gameInterval);
             }
             
+            setGameInterval();
+      }
+
+      function setGameInterval() {
+
             let moveAccumulator = 0;
             moveCounter = 0;
-            
+
+            // Constantes para velocidade
+            const BASE_INTERVAL = 200; // Intervalo base do setInterval em ms
+            const BASE_ENEMY_SPEED = 5; // Quantos ticks para mover (5 = mover a cada 1 segundo)
+            const SPEED_INCREASE = 0.5; // Quanto diminui do intervalo a cada nível
+
             gameInterval = setInterval(() => {
                 if (!isPaused) {
                     moveCounter++;
-                    moveAccumulator += 1;
-
-                    // Velocidade base começa em 4.0 (bem controlável)
-                    // A cada 3 níveis, diminui 0.4 (fica mais rápido)
-                    let enemySpeed = Math.max(4.0 - (Math.floor((level - 1) / 4) * 0.4), 0.23);
                     
-                    if (moveAccumulator >= enemySpeed) {
+                    // Calcula intervalo de movimento baseado no nível
+                    // Começa em 5 ticks (1 segundo) e diminui 0.5 a cada nível
+                    const moveInterval = Math.max(
+                        BASE_ENEMY_SPEED - (Math.floor((level - 1) / 3) * SPEED_INCREASE), 
+                        1.2 // Nunca mais rápido que 1.2 ticks
+                    );
+                    
+                    // Move quando o contador atinge o intervalo
+                    if (moveCounter >= moveInterval) {
                         enemies.forEach(moveEnemy);
-                        moveAccumulator = 0;
+                        moveCounter = 0; // Reseta o contador
                     }
 
                     updateShots();
@@ -1109,12 +1069,11 @@
                         generateNewBullet();
                     }
 
-                    // Chance de gerar coração quando player está com 1 ou 2 vidas
                     if (lives <= 2 && Math.random() < heartSpawnChance) {
                         generateHeart();
                     }
                 }
-            }, 200);
+            }, BASE_INTERVAL); // 200ms = 5 ticks por segundo
         }
 
         function updateBulletsDisplay() {
@@ -1431,23 +1390,9 @@
                 pauseOverlay.classList.remove('hidden');
             } else {
                 pauseOverlay.classList.add('hidden');
+                
                 // Recria o intervalo principal do jogo
-                gameInterval = setInterval(() => {
-                    if (!isPaused) {
-                        moveCounter++;
-                        if (moveCounter % 3 === 0) {
-                            enemies.forEach(moveEnemy);  // movimento dos inimigos
-                        }
-                        updateShots();  // atualização dos tiros
-                        checkCollision();  // checagem de colisões
-                        renderMaze();  // renderização do labirinto
-                        
-                        // geração de novas balas
-                        if (Math.random() < bulletSpawnChance) {
-                            generateNewBullet();
-                        }
-                    }
-                }, 200);
+                setGameInterval();
             }
         }
 
