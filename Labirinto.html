@@ -701,7 +701,7 @@
             }
 
             document.getElementById('level').textContent = level;
-            document.getElementById('score').textContent = score;
+            document.getElementById('score').textContent = score.toLocaleString();
             document.getElementById('treasures').textContent = treasures.length;
             updateLives();
         }
@@ -950,7 +950,7 @@
             const treasureIndex = treasures.findIndex(t => t.x === player.x && t.y === player.y);
             if (treasureIndex !== -1) {
                 treasures.splice(treasureIndex, 1);
-                score += 100 * level;
+                score += 2000;
                 audioManager.play('collectTreasure'); // Adiciona som de coleta
                 
                 if (treasures.length === 0) {
@@ -970,7 +970,7 @@
 
         function levelUp() {
             level++;
-            score += 500 * level;
+            score += 10000;
             maze = createMaze();
             player = { x: 1, y: 1 };
             
@@ -1008,7 +1008,7 @@
             isGameOver = true;
             clearInterval(gameInterval);
             document.getElementById('gameOver').classList.add('active');
-            document.getElementById('finalScore').textContent = score;
+            document.getElementById('finalScore').textContent = score.toLocaleString();
             document.getElementById('finalLevel').textContent = level;
         }
 
@@ -1356,6 +1356,8 @@
                 if (hitEnemy !== -1 && !enemies[hitEnemy].exploding) {
                     enemies[hitEnemy].exploding = true;
                     shots.splice(i, 1);
+                    score += 1000; // Adiciona 1000 pontos por inimigo morto
+                    document.getElementById('score').textContent = score.toLocaleString(); // Atualiza o placar
                     audioManager.play('enemyDeath'); // Adiciona som de morte do inimigo
 
                     // Posição atual do inimigo atingido
@@ -1390,7 +1392,7 @@
                 pauseOverlay.classList.remove('hidden');
             } else {
                 pauseOverlay.classList.add('hidden');
-                
+
                 // Recria o intervalo principal do jogo
                 setGameInterval();
             }

@@ -47,8 +47,9 @@ Um jogo de labirinto desafiador onde você precisa coletar tesouros enquanto fog
 
 ## 🏆 Sistema de Pontuação
 
-- 💎 100 pontos × nível atual por tesouro coletado
-- 🌟 500 pontos × nível atual por nível completado
+- 👾☠️ 1000 pontos por inimigo morto
+- 💎 2000 pontos por tesouro coletado
+- 🌟 10000 pontos por nível completado
 
 ## 💡 Dicas
 
