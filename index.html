@@ -39,20 +39,36 @@
             padding: 0 20px;
         }
 
-        .d-pad {
-            position: absolute;
-            left: 5px;
-            display: flex;
-            flex-direction: column;
-           
-            width: 125px;  /* Reduzido para ficar mais compacto */
+        .joystick {
+            position: relative;
+            width: 130px;
+            height: 130px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(74, 85, 104, 0.35) 0%, rgba(74, 85, 104, 0.6) 100%);
+            border: 2px solid rgba(160, 174, 192, 0.5);
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            flex-shrink: 0;
         }
 
-        .d-pad-row {
-            display: grid;
-            grid-template-columns: 60px 60px 60px;
-           
-            justify-content: start; /* Alinha à esquerda */
+        .joystick-knob {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 56px;
+            height: 56px;
+            margin: -28px 0 0 -28px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 35% 35%, #68d391, #2f855a);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+            pointer-events: none;
+            transition: transform 0.12s ease-out;
+        }
+
+        .joystick.active .joystick-knob {
+            transition: none;
         }
 
         .control-btn {
@@ -71,7 +87,14 @@
 
         .shoot-control {
             margin-left: auto;
-            width: 60px;
+            align-self: center;
+        }
+
+        .shoot-control .control-btn {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            font-size: 32px;
         }
 
         .control-btn:active {
@@ -82,6 +105,7 @@
         @media (max-width: 768px) {
             .mobile-controls {
                 display: flex;
+                align-items: center;
                 padding-right: 40px; /* Aumentado para mover mais à direita */
             }
         }
@@ -89,10 +113,6 @@
         @media (max-width: 400px) {
             .mobile-controls {
                 padding: 0 20px;
-            }
-            
-            .d-pad {
-                width: 150px;
             }
         }
 
@@ -298,17 +318,8 @@
         <div class="maze-wrapper">
             <div id="maze" class="maze-container"></div>
             <div class="mobile-controls">
-                <div class="d-pad">
-                    <div class="d-pad-row">
-                        <div></div>
-                        <div class="control-btn" id="btnUp">🔼</div>
-                        <div></div>
-                    </div>
-                    <div class="d-pad-row">
-                        <div class="control-btn" id="btnLeft">◀️</div>
-                        <div class="control-btn" id="btnDown">🔽</div>
-                        <div class="control-btn" id="btnRight">▶️</div>
-                    </div>
+                <div class="joystick" id="joystick">
+                    <div class="joystick-knob" id="joystickKnob"></div>
                 </div>
                 <div class="shoot-control">
                     <div class="control-btn" id="btnShoot">⚪</div>
@@ -1429,35 +1440,86 @@
             return false;
         }
 
-        // Atualiza os event listeners dos botões
-        ['Up', 'Down', 'Left', 'Right'].forEach(direction => {
-            const btn = document.getElementById(`btn${direction}`);
-            const dir = direction.toLowerCase();
+        // Joystick virtual (mobile)
+        (function setupJoystick() {
+            const base = document.getElementById('joystick');
+            const knob = document.getElementById('joystickKnob');
+            const DEAD_ZONE = 14;   // px antes de começar a mover
+            const HYSTERESIS = 1.3; // evita trocar de direção na diagonal
+            let activePointer = null;
+            let joyDirection = null;
 
-            // Touch events
-            btn.addEventListener('touchstart', (e) => {
+            function maxRadius() {
+                return (base.clientWidth - knob.clientWidth) / 2;
+            }
+
+            function resetKnob() {
+                knob.style.transform = 'translate(0px, 0px)';
+            }
+
+            function pickDirection(dx, dy) {
+                const ax = Math.abs(dx);
+                const ay = Math.abs(dy);
+                if (Math.hypot(dx, dy) < DEAD_ZONE) return null;
+
+                // Mantém a direção atual se o outro eixo não dominar com folga
+                if (joyDirection === 'left' || joyDirection === 'right') {
+                    if (ay <= ax * HYSTERESIS) return dx < 0 ? 'left' : 'right';
+                } else if (joyDirection === 'up' || joyDirection === 'down') {
+                    if (ax <= ay * HYSTERESIS) return dy < 0 ? 'up' : 'down';
+                }
+                if (ax > ay) return dx < 0 ? 'left' : 'right';
+                return dy < 0 ? 'up' : 'down';
+            }
+
+            function update(e) {
+                const rect = base.getBoundingClientRect();
+                let dx = e.clientX - (rect.left + rect.width / 2);
+                let dy = e.clientY - (rect.top + rect.height / 2);
+                const dist = Math.hypot(dx, dy);
+                const max = maxRadius();
+                const kx = dist > max ? dx / dist * max : dx;
+                const ky = dist > max ? dy / dist * max : dy;
+                knob.style.transform = `translate(${kx}px, ${ky}px)`;
+
+                const dir = pickDirection(dx, dy);
+                if (dir !== joyDirection) {
+                    joyDirection = dir;
+                    if (dir) startContinuousMove(dir);
+                    else stopContinuousMove();
+                }
+            }
+
+            function release(e) {
+                if (e.pointerId !== activePointer) return;
+                activePointer = null;
+                joyDirection = null;
+                base.classList.remove('active');
+                resetKnob();
+                stopContinuousMove();
+            }
+
+            base.addEventListener('pointerdown', (e) => {
+                if (activePointer !== null) return;
                 e.preventDefault();
-                startContinuousMove(dir);
+                activePointer = e.pointerId;
+                base.setPointerCapture(e.pointerId);
+                base.classList.add('active');
+                update(e);
             });
 
-            btn.addEventListener('touchend', (e) => {
+            base.addEventListener('pointermove', (e) => {
+                if (e.pointerId !== activePointer) return;
                 e.preventDefault();
-                stopContinuousMove();
+                update(e);
             });
 
-            // Mouse events para desktop
-            btn.addEventListener('mousedown', () => {
-                startContinuousMove(dir);
-            });
-
-            btn.addEventListener('mouseup', () => {
-                stopContinuousMove();
-            });
-
-            btn.addEventListener('mouseleave', () => {
-                stopContinuousMove();
-            });
-        });
+            base.addEventListener('pointerup', release);
+            base.addEventListener('pointercancel', release);
+            base.addEventListener('lostpointercapture', release);
+            base.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
+            base.addEventListener('contextmenu', (e) => e.preventDefault());
+        })();
 
         // Mobile
         document.getElementById('btnShoot').addEventListener('touchstart', (e) => {
