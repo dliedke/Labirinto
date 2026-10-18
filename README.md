@@ -25,7 +25,7 @@ Um jogo de labirinto desafiador onde você precisa coletar tesouros enquanto fog
 ### Mobile
 - **Faça um scrollzinho para baixo e para cima para remover a barra de endereço (título do jogo deve ficar no topo)**
 - Arraste a bolinha do joystick (canto inferior esquerdo) para mover
-- Mantenha pressionado um botão para mover mais rápido
+- Mantenha o joystick inclinado para continuar andando
 - Use o botão de tiro (⚪) para atirar
 - Toque no botão "Jogar Novamente" após Game Over
 - Toque no botão ⏸️ para pausar o jogo
