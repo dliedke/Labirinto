@@ -2,7 +2,7 @@
 
 Um jogo de labirinto desafiador onde você precisa coletar tesouros enquanto foge e mata inimigos! Explore labirintos gerados proceduralmente, colete tesouros, encontre munição, recupere vida e elimine inimigos! Tente sobreviver o máximo possível.
 
-🎮 **Jogue agora**: <a href="https://labirinto.tiiny.site/" target="_blank">https://labirinto.tiiny.site/</a>
+🎮 **Jogue agora**: <a href="https://dliedke.github.io/Labirinto/" target="_blank">https://dliedke.github.io/Labirinto/</a>
 
 ## 🎯 Objetivo
 
@@ -23,7 +23,7 @@ Um jogo de labirinto desafiador onde você precisa coletar tesouros enquanto fog
 - Botão 🔊 para mutar ou 🔈 para ligar o som
 
 ### Mobile
-- **Faça um scrollzinho para baixo e para cima para remover a barra de endereço e evitar clicar na propaganda (titulo do jogo deve ficar no topo)**
+- **Faça um scrollzinho para baixo e para cima para remover a barra de endereço (título do jogo deve ficar no topo)**
 - Use os botões direcionais na tela
 - Mantenha pressionado um botão para mover mais rápido
 - Use o botão de tiro (⚪) para atirar
